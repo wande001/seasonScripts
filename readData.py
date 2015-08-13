@@ -453,7 +453,7 @@ def returnSeasonalEnsembleForecast(dateInput, endDay, model, varName, lag, month
 
 def nashSutcliffe(obs, mod):
   MSE = np.sum((obs-mod)**2)
-  MSEclim = np.sum((obs - np.mean(obs))**2)
+  MSEclim = np.maximum(np.sum((obs - np.mean(obs))**2),1e-10)
   NSE = 1-MSE/MSEclim
   return np.maximum(NSE,-999.)
 
