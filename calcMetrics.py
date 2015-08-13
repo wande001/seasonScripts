@@ -21,7 +21,7 @@ if model == "CanCM3":
 
 if model == "CanCM4":
     dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/CanCM4/"+ref+"/"
-    ensNr = 2
+    ensNr = 7
     if varName == "tas":
         factor = 1.
     else:

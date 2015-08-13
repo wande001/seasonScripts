@@ -9,12 +9,20 @@ MV = 1e20
 smallNumber = 1E-39
 
 # file cache to minimize/reduce opening/closing files.  
+filecache = dict()
 
 def readNC(ncFile,varName, dateInput, latPoint = None, lonPoint = None, endDay = None, useDoy = None, LatitudeLongitude = False, specificFillValue = None, model = "NMME"):
     
+    if ncFile in filecache.keys():
+        f = filecache[ncFile]
+        print "Cached: ", ncFile
+    else:
+        f = nc.Dataset(ncFile)
+        filecache[ncFile] = f
+        print "New: ", ncFile
     # Get netCDF file and variable name:
-    f = nc.Dataset(ncFile)
-    print "New: ", ncFile
+    #f = nc.Dataset(ncFile)
+    #print "New: ", ncFile
     
     #print ncFile
     #f = nc.Dataset(ncFile)  
@@ -39,11 +47,8 @@ def readNC(ncFile,varName, dateInput, latPoint = None, lonPoint = None, endDay =
         deltaDays = datetime.datetime(lastDay.year,lastDay.month,lastDay.day) - orgDateEnd + datetime.timedelta(days=1)
         # time index (in the netCDF file)
         nctime = f.variables['time']  # A netCDF time variable object.
-        print nctime[:]
         print int(dateDif.days)
         print int(deltaDays.days)-1
-        print np.where(nctime[:] >= int(dateDif.days))[0][0]
-        print np.where(nctime[:] <= int(deltaDays.days)-1)[0][-1]
         idx = range(int(np.where(nctime[:] >= int(dateDif.days))[0][0]), int(np.where(nctime[:] <= int(deltaDays.days)-1)[0][-1])+1)
     else:
         if isinstance(date, str) == True:
@@ -55,7 +60,7 @@ def readNC(ncFile,varName, dateInput, latPoint = None, lonPoint = None, endDay =
     
     outputData = f.variables[varName][idx,:,:]       # still original data
     outputData[outputData == MV] = np.nan
-    f.close()
+    f = None
     
     return(outputData)
 
