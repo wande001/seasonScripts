@@ -59,11 +59,11 @@ def ncFileName(model, varName, startTime, endTime):
 beginYear = 1981
 endYear = 2011
 forcingInput = "/tigress/nwanders/Scripts/Seasonal/"
-modelS = ["CanCM3","FLOR"] #["CanCM3","CanCM4", "FLOR"]
-precVarNameS = ["prlr","pr"] #["prlr","prlr","pr"]
+modelS = ["FLOR"] #["CanCM3","CanCM4", "FLOR"]
+precVarNameS = ["pr"] #["prlr","prlr","pr"]
 tempVarName = "tas"
 refInput = "/tigress/nwanders/Scripts/Seasonal/refData/"
-refModelS = ["PGF"] #["PGF", "CFS"]
+refModelS = ["PGF","CFS"] #["PGF", "CFS"]
 precRefVarName = "prec"
 tempRefVarName = "tas"
 precCorFactor = 1.0
@@ -97,6 +97,8 @@ for m in range(len(modelS)):
           startPath = iniFile[i].find('/home/')  
           if iniFile[i][0:9] == 'outputDir':
             iniFile[i] = 'outputDir = '+outputDir+'\n'
+          if iniFile[i][0:5] == 'model':
+            iniFile[i] = 'model = '+model+'\n'
           if iniFile[i][0:9] == 'startTime':
             iniFile[i] = 'startTime = '+timeToStr(startTime)+'\n'
           if iniFile[i][0:7] == 'endTime':
