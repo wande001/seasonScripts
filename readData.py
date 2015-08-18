@@ -9,17 +9,11 @@ MV = 1e20
 smallNumber = 1E-39
 
 # file cache to minimize/reduce opening/closing files.  
-filecache = dict()
 
 def readNC(ncFile,varName, dateInput, latPoint = None, lonPoint = None, endDay = None, useDoy = None, LatitudeLongitude = False, specificFillValue = None, model = "NMME"):
     
-    if ncFile in filecache.keys():
-        f = filecache[ncFile]
-        print "Cached: ", ncFile
-    else:
-        f = nc.Dataset(ncFile)
-        filecache[ncFile] = f
-        print "New: ", ncFile
+    f = nc.Dataset(ncFile)
+    print "New: ", ncFile
     # Get netCDF file and variable name:
     #f = nc.Dataset(ncFile)
     #print "New: ", ncFile
@@ -60,7 +54,7 @@ def readNC(ncFile,varName, dateInput, latPoint = None, lonPoint = None, endDay =
     
     outputData = f.variables[varName][idx,:,:]       # still original data
     outputData[outputData == MV] = np.nan
-    f = None
+    f.close()
     
     return(outputData)
 
@@ -195,6 +189,18 @@ def lagToDateTime(date, lag, model):
 def returnSeasonalForecast(dateInput, endDay, model, varName, lag, month = 0, ensNr = 1, dirLoc=""):
     if varName == "discharge":
       varFile = "discharge_seasoAvg_output.nc"
+
+    if varName == "groundwater":
+      varFile = "storGroundwater_seasoAvg_output.nc"
+      varName = "groundwater_storage"
+
+    if varName == "soilMoistureLow":
+      varFile = "satDegLow_seasoAvg_output.nc"
+      varName = "lower_soil_saturation_degree"
+
+    if varName == "soilMoistureUp":
+      varFile = "satDegUpp_seasoAvg_output.nc"
+      varName = "upper_soil_saturation_degree"
     model = "PGF"
     deltaDay = lagToDateTime(endDay, lag, model).day - lagToDateTime(dateInput, lag, model).day + 1
     deltaYear = lagToDateTime(endDay, lag, model).year - lagToDateTime(dateInput, lag, model).year + 1
@@ -292,7 +298,16 @@ def aggregateSpace(data, extent = 0):
 
 def readForcing(ncFile, varName, dateInput, endDay, lag=0, model="PGF"):
     if varName == "discharge":
-      varFile = "discharge_dailyTot_output.nc"
+      varFile = "discharge_seasoAvg_output.nc"
+    if varName == "groundwater":
+      varFile = "storGroundwater_seasoAvg_output.nc"
+      varName = "groundwater_storage"
+    if varName == "soilMoistureLow":
+      varFile = "satDegLow_seasoAvg_output.nc"
+      varName = "lower_soil_saturation_degree"
+    if varName == "soilMoistureUp":
+      varFile = "satDegUpp_seasoAvg_output.nc"
+      varName = "upper_soil_saturation_degree"
     deltaDay = lagToDateTime(endDay, lag, model).day - lagToDateTime(dateInput, lag, model).day + 1
     deltaYear = lagToDateTime(endDay, lag, model).year - lagToDateTime(dateInput, lag, model).year + 1
     data = np.zeros((deltaYear,360,720))

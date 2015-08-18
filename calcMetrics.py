@@ -14,6 +14,20 @@ ref = sys.argv[7]
 
 if varName == "discharge":
   varFile = "discharge_dailyTot_output.nc"
+  varOutPutName = "discharge"
+
+if varName == "groundwater":
+  varFile = "storGroundwater"
+  varOutPutName = "groundwater"
+
+if varName == "soilMoistureLow":
+  varFile = "satDegLow"
+  varOutPutName = "soilMoistureLow"
+
+if varName == "soilMoistureUp":
+  varFile = "satDegUpp"
+  varOutPutName = "soilMoistureUp"
+
 
 if model == "CanCM3":
     dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/CanCM3/"+ref+"/"
@@ -21,30 +35,29 @@ if model == "CanCM3":
 
 if model == "CanCM4":
     dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/CanCM4/"+ref+"/"
-    ensNr = 7
-    if varName == "tas":
-        factor = 1.
-    else:
-        factor = 86400.*1000.
+    ensNr = 10
 
 if model == "FLOR":
-    dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/FLOR/"
+    dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/FLOR/"+ref+"/"
     ensNr = 12
-    if varName == "tas":
-        factor = 1.
-    else:
-        factor = 86400.*1000.
 
 if ref == "PGF":
     if varName == "discharge":
-        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/netcdf/discharge_dailyTot_output.nc"
+        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/netcdf/discharge_seasoAvg_output.nc"
+    if varName == "groundwater":
+        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/netcdf/storGroundwater_seasoAvg_output.nc"
+    if varName == "soilMoistureLow":
+        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/netcdf/satDegLow_seasoAvg_output.nc"
+    if varName == "soilMoistureUp":
+        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/netcdf/satDegUpp_seasoAvg_output.nc"
 
-ncOutputFile = "/tigress/nwanders/Scripts/hydroSeasonal/resultsNetCDF/"+model+"_"+ref+"_"+varName+"_tempScale_"+str(tempScale)+"_lag_"+str(lag)+".nc4"
+
+ncOutputFile = "/tigress/nwanders/Scripts/hydroSeasonal/resultsNetCDF/"+model+"_"+ref+"_"+varOutPutName+"_tempScale_"+str(tempScale)+"_lag_"+str(lag)+".nc4"
 
 startDays = np.tile(["01","16"],24)
 endDays = np.tile(["15","31","15","28","15","31","15","30","15","31","15","30","15","31","15","31","15","30","15","31","15","30","15","31"],2)
 inputMonth = np.tile(np.repeat(["01","02","03","04","05","06","07","08","09","10","11","12"],2),2)
-inputYear = np.repeat(["2011","2012"],24)
+inputYear = np.repeat(["2010","2011"],24)
 varNames = ["correlation","signif", "bias","NSE", "RMSE"]
 varUnits = ["-","-","m3/s","-","m3/s"]
 createNetCDF(ncOutputFile, varNames, varUnits, np.arange(89.75,-90,-0.5), np.arange(-179.75,180,0.5), loop=True)
