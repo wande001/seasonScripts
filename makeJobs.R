@@ -26,9 +26,9 @@ runs[[11]] = "python calcMetrics.py 10 2 24 20 $lag $model $ref $varName"
 runs[[12]] = "python calcMetrics.py 11 2 24 22 $lag $model $ref $varName"
 runs[[13]] = "python calcMetrics.py 12 2 24 24 $lag $model $ref $varName"
 
-modelS = c("CanCM3","CanCM4")
+modelS = c("FLOR")
 varNameS = c("discharge","groundwater","soilMoistureLow","soilMoistureUp")
-refS = c("CFS")
+refS = c("PGF","CFS")
 lagS = c(0:11)
 
 jobDir = "/tigress/nwanders/Scripts/hydroSeasonal/jobs/"

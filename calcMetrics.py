@@ -51,6 +51,16 @@ if ref == "PGF":
     if varName == "soilMoistureUp":
         ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/netcdf/satDegUpp_seasoAvg_output.nc"
 
+if ref == "CFS":
+    if varName == "discharge":
+        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/CFS/netcdf/discharge_seasoAvg_output.nc"
+    if varName == "groundwater":
+        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/CFS/netcdf/storGroundwater_seasoAvg_output.nc"
+    if varName == "soilMoistureLow":
+        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/CFS/netcdf/satDegLow_seasoAvg_output.nc"
+    if varName == "soilMoistureUp":
+        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/CFS/netcdf/satDegUpp_seasoAvg_output.nc"
+
 
 ncOutputFile = "/tigress/nwanders/Scripts/hydroSeasonal/resultsNetCDF/"+model+"_"+ref+"_"+varOutPutName+"_tempScale_"+str(tempScale)+"_lag_"+str(lag)+".nc4"
 
