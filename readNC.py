@@ -8,8 +8,8 @@ import grads
 # Global variables:
 MV = 1e20
 smallNumber = 1E-39
-grads_exe = '/home/water1/niko/Programs/opengrads-2.1.a2.oga.1.princeton/opengrads'
-#grads_exe = '/tigress/nwanders/Programs/opengrads-2.1.a2.oga.1.princeton/opengrads'
+#grads_exe = '/home/water1/niko/Programs/opengrads-2.1.a2.oga.1.princeton/opengrads'
+grads_exe = '/tigress/nwanders/Programs/opengrads-2.1.a2.oga.1.princeton/opengrads'
 #grads_exe = '/home/niko/Programs/opengrads-2.1.a2.oga.1.princeton/opengrads'
 
 # file cache to minimize/reduce opening/closing files.  
