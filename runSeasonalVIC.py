@@ -423,15 +423,15 @@ for year in range(startTime.year,endTime.year+1):
           os.mkdir('/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/%d' %(forecastDate.year, forecastDate.month, forecastDate.day,ens+1))
         except:
           foo = 0
-        ncFileName = '/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/%d/output_%d%.2d%.2d.nc' %(forecastDate.year, forecastDate.month, forecastDate.day,ens+1,forecastDate.year, forecastDate.month, forecastDate.day)
+        ncFile = '/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/%d/output_%d%.2d%.2d.nc' %(forecastDate.year, forecastDate.month, forecastDate.day,ens+1,forecastDate.year, forecastDate.month, forecastDate.day)
         data = readGrads(fileName, "prec", str(1), lon=[-179.5, 179.5])
-        createNetCDF(ncFileName, varNames, ["mm","mm","mm","mm","mm","mm","mm","mm","mm","mm","mm","W/m^2","W/m^2","W/m^2", "C", "mm","cm","mm"], latitudes=data.latitudes, longitudes=data.longitudes, loop=True)
+        createNetCDF(ncFile, varNames, ["mm","mm","mm","mm","mm","mm","mm","mm","mm","mm","mm","W/m^2","W/m^2","W/m^2", "C", "mm","cm","mm"], latitudes=data.latitudes, longitudes=data.longitudes, loop=True)
         
         for i in range(d):
           print i
           for var in varNames:
             data = readGrads(fileName, var, str(i+1), lon=[-179.5, 179.5])
-            data2NetCDF(ncFileName, var, data, data.time, posCnt = i)
+            data2NetCDF(ncFile, var, data, data.time, posCnt = i)
         print time.strftime("%H:%M:%S")
         os.remove(forcing_file)
         shutil.rmtree('/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/resultRAW' %(forecastDate.year, forecastDate.month, forecastDate.day))
