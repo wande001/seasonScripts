@@ -1,7 +1,7 @@
 import datetime
 
 beginYear = 1981
-endYear = 2011
+endYear = 1981
 forcingInput = "/tigress/nwanders/Scripts/Seasonal/"
 modelS = ["CanCM3","CanCM4", "FLOR"]
 precVarNameS = ["prlr","prlr","pr"]
@@ -24,7 +24,7 @@ for m in range(len(modelS)):
     for year in range(beginYear,endYear+1):
       for month in range(1,13):
         startTime = '%d%.2d01' %(year, month)
-        endTimeTemp = datetime.datetime(year+1, month, day) - datetime.timedelta(days=1)
+        endTimeTemp = datetime.datetime(year+1, month, 1) - datetime.timedelta(days=1)
         endTime = '%d%.2d%.2d' %(endTimeTemp.year, endTimeTemp.month, endTimeTemp.day)
  
         job = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/VIC_"+model+"_"+refModel+"_"+startTime+".sh", "w")
@@ -37,6 +37,6 @@ for m in range(len(modelS)):
         job.writelines("python /tigress/nwanders/Scripts/hydroSeasonal/seasonScripts/runSeasonalVIC.py %s %s %s %s" %(startTime, endTime, model, refModel))
         job.close()
     
-        master.writelines("sbatch /tigress/nwanders/Scripts/hydroSeasonal/jobs/"+model+"_"+refModel+"_"+startTime+".sh\n")
+        master.writelines("sbatch /tigress/nwanders/Scripts/hydroSeasonal/jobs/VIC_"+model+"_"+refModel+"_"+startTime+".sh\n")
 
 master.close()

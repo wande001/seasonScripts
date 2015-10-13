@@ -59,8 +59,8 @@ def ncFileName(model, varName, startTime, endTime):
 beginYear = 1981
 endYear = 2011
 forcingInput = "/tigress/nwanders/Scripts/Seasonal/"
-modelS = ["FLOR"] #["CanCM3","CanCM4", "FLOR"]
-precVarNameS = ["pr"] #["prlr","prlr","pr"]
+modelS = ["CanCM3","CanCM4", "FLOR"]
+precVarNameS = ["prlr","prlr","pr"]
 tempVarName = "tas"
 refInput = "/tigress/nwanders/Scripts/Seasonal/refData/"
 refModelS = ["PGF","CFS"] #["PGF", "CFS"]

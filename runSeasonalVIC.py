@@ -4,11 +4,7 @@ import grads
 import numpy as np
 import fileinput
 import netCDF4 as nc
-import pyhdf.SD as sd
-import library_f90
-import scipy.stats as ss
 import subprocess
-import dateutil.relativedelta as relativedelta
 import time
 import random
 import sys
@@ -22,9 +18,12 @@ grads_exe = '/tigress/nwanders/Programs/opengrads-2.1.a2.oga.1.princeton/opengra
 ga = grads.GrADS(Bin=grads_exe,Window=False,Echo=False)
 
 startTime = datetime.datetime(int(sys.argv[1][0:4]), int(sys.argv[1][4:6]), int(sys.argv[1][6:8]))
-endTime = datetime.datetime(int(sys.argv[1][0:4]), int(sys.argv[1][4:6]), int(sys.argv[1][6:8]))
+endTime = datetime.datetime(int(sys.argv[2][0:4]), int(sys.argv[2][4:6]), int(sys.argv[2][6:8]))
 model = sys.argv[3]
 refForcing = sys.argv[4]
+
+print startTime
+print endTime
 
 MV = 1e20
 smallNumber = 1E-39
@@ -355,7 +354,7 @@ dims['res'] = 1.000
 dims['maxlat'] = dims['minlat'] + dims['res']*(dims['nlat']-1)
 dims['maxlon'] = dims['minlon'] + dims['res']*(dims['nlon']-1)
 
-totEns = 2
+totEns = 10
 precName = "prlr"
 if model == "FLOR":
   totEns = 12
@@ -368,7 +367,7 @@ precipitationReferenceCDF = '/tigress/nwanders/Scripts/Seasonal/resultsNetCDF/'+
 temperatureReferenceCDF = '/tigress/nwanders/Scripts/Seasonal/resultsNetCDF/'+refForcing+'_tas_pctl.nc4'
 
 for year in range(startTime.year,endTime.year+1):
-  for month in range(1,2):
+  for month in range(1,13):
     forecastDate = datetime.datetime(year, month, 1)
     if forecastDate < endTime:
       for ens in range(totEns):
