@@ -24,7 +24,10 @@ for m in range(len(modelS)):
     for year in range(beginYear,endYear+1):
       for month in range(1,13):
         startTime = '%d%.2d01' %(year, month)
-        endTimeTemp = datetime.datetime(year+1, month, 1) - datetime.timedelta(days=1)
+        if month != 12:
+          endTimeTemp = datetime.datetime(year, month+1, 1) - datetime.timedelta(days=1)
+        else:
+          endTimeTemp = datetime.datetime(year+1, 1, 1) - datetime.timedelta(days=1)
         endTime = '%d%.2d%.2d' %(endTimeTemp.year, endTimeTemp.month, endTimeTemp.day)
  
         job = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/VIC_"+model+"_"+refModel+"_"+startTime+".sh", "w")
