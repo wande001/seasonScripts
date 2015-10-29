@@ -1,7 +1,7 @@
 import datetime
 
 beginYear = 1981
-endYear = 1981
+endYear = 1982
 forcingInput = "/tigress/nwanders/Scripts/Seasonal/"
 modelS = ["CanCM3","CanCM4", "FLOR"]
 precVarNameS = ["prlr","prlr","pr"]
@@ -25,7 +25,7 @@ for m in range(len(modelS)):
       for month in range(1,13):
         startTime = '%d%.2d01' %(year, month)
         if month != 12:
-          endTimeTemp = datetime.datetime(year, month+1, 1) - datetime.timedelta(days=1)
+          endTimeTemp = datetime.datetime(year+1, month, 1) - datetime.timedelta(days=1)
         else:
           endTimeTemp = datetime.datetime(year+1, 1, 1) - datetime.timedelta(days=1)
         endTime = '%d%.2d%.2d' %(endTimeTemp.year, endTimeTemp.month, endTimeTemp.day)

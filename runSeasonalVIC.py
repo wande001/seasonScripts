@@ -396,8 +396,7 @@ for year in range(startTime.year,endTime.year+1):
           tmax[:,0:180] = tempNC[::-1,180:360]
           tmax[:,180:360] = tempNC[::-1,0:180]
           tmin = np.copy(tmax)
-          wind = np.zeros((180,360), dtype=np.float32)
-          wind[:,:] = windNC
+          wind = np.array(windNC, dtype=np.float32)
           #Append to the outgoing file
           prec.tofile(fp)
           tmax.tofile(fp)
