@@ -62,7 +62,7 @@ if ref == "CFS":
         ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/CFS/netcdf/satDegUpp_seasoAvg_output.nc"
 
 
-ncOutputFile = "/tigress/nwanders/Scripts/hydroSeasonal/resultsNetCDF/"+model+"_"+ref+"_"+varOutPutName+"_tempScale_"+str(tempScale)+"_lag_"+str(lag)+".nc4"
+ncOutputFile = "/tigress/nwanders/Scripts/hydroSeasonal/resultsNetCDF/"+model+"_"+ref+"_"+varOutPutName+"_lag_"+str(lag)+".nc4"
 
 startDays = np.tile(["01","16"],24)
 endDays = np.tile(["15","31","15","28","15","31","15","30","15","31","15","30","15","31","15","31","15","30","15","31","15","30","15","31"],2)
