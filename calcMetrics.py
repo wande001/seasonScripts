@@ -30,15 +30,15 @@ if varName == "soilMoistureUp":
 
 
 if model == "CanCM3":
-    dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/CanCM3/"+ref+"/"
+    dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/CanCM3/PCRGLOBWB/"+ref+"/"
     ensNr = 10
 
 if model == "CanCM4":
-    dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/CanCM4/"+ref+"/"
+    dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/CanCM4/PCRGLOBWB/"+ref+"/"
     ensNr = 10
 
 if model == "FLOR":
-    dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/FLOR/"+ref+"/"
+    dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/FLOR/PCRGLOBWB/"+ref+"/"
     ensNr = 12
 
 if ref == "PGF":
