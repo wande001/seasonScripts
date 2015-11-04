@@ -30,7 +30,7 @@ if ref == "PGF":
     ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/output_1972_2014.nc"
 
 
-ncOutputFile = "/tigress/nwanders/Scripts/hydroSeasonal/resultsNetCDF/VIC"+model+"_"+ref+"_"+varOutPutName+"_lag_"+str(lag)+".nc4"
+ncOutputFile = "/tigress/nwanders/Scripts/hydroSeasonal/resultsNetCDF/VIC_"+model+"_"+ref+"_"+varOutPutName+"_lag_"+str(lag)+".nc4"
 
 startDays = np.tile(["01","16"],24)
 endDays = np.tile(["15","31","15","28","15","31","15","30","15","31","15","30","15","31","15","31","15","30","15","31","15","30","15","31"],2)
