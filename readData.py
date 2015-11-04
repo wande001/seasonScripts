@@ -4,6 +4,8 @@ import datetime
 import numpy as np
 import numpy.random as random
 
+from statsmodels.distributions.empirical_distribution import ECDF
+
 # Global variables:
 MV = 1e20
 smallNumber = 1E-39
@@ -204,7 +206,7 @@ def returnSeasonalForecast(dateInput, endDay, model, varName, lag, month = 0, en
     model = "PGF"
     deltaDay = lagToDateTime(endDay, lag, model).day - lagToDateTime(dateInput, lag, model).day + 1
     deltaYear = lagToDateTime(endDay, lag, model).year - lagToDateTime(dateInput, lag, model).year + 1
-    data = np.zeros((deltaYear,360,720))
+    data = np.zeros((deltaYear,ensNr,360,720))
     print data.shape
     start = datetime.datetime.strptime(str(dateInput),'%Y-%m-%d')
     end = datetime.datetime.strptime(str(endDay),'%Y-%m-%d')
@@ -256,11 +258,71 @@ def returnSeasonalForecast(dateInput, endDay, model, varName, lag, month = 0, en
                     tempData[ens,:,:] = aggregateTime(temp, var=varName)
                 else:
                     tempData[ens,:,:] = aggregateTime(readNC(ncFile,varName, lagToDateStr(startDate, lag, model), endDay = endDate, model=model), var=varName)
-            data[lastEntry,:,:] = ensembleMean(tempData)
+            data[lastEntry,:,:,:] = ensembleMean(tempData)
             lastEntry += 1
     return(data)
 
-
+def returnVICForecast(dateInput, endDay, model, varName, lag, month = 0, ensNr = 1, dirLoc=""):
+    deltaDay = lagToDateTime(endDay, lag, model).day - lagToDateTime(dateInput, lag, model).day + 1
+    deltaYear = lagToDateTime(endDay, lag, model).year - lagToDateTime(dateInput, lag, model).year + 1
+    data = np.zeros((deltaYear,ensNr,180,360))
+    print data.shape
+    start = datetime.datetime.strptime(str(dateInput),'%Y-%m-%d')
+    end = datetime.datetime.strptime(str(endDay),'%Y-%m-%d')
+    
+    varFile = "output_%d%.2d%.2d.nc" %(start.year,start.month, start.day)
+    model = "PGF"
+    lastEntry = 0
+    m = start.month
+    for y in range(start.year, end.year+1):
+        tempStartDate = datetime.datetime.strptime(str(str(y)+"-"+str(m)+"-01"),'%Y-%m-%d')
+        zero = ""
+        if len(str(m)) < 2: zero = "0"
+        zeroDay = ""
+        if len(str(start.day)) < 2: zeroDay="0"
+        startDate = str(tempStartDate.year)+"-"+zero+str(tempStartDate.month)+"-"+zeroDay+str(start.day)
+        tempEnd = lagToDateTime(findMonthEnd(y, m, 31, model),11, model)
+        if tempStartDate.year >= start.year and tempStartDate < (end - datetime.timedelta (days = 1)):
+            zero = ""
+            if len(str(m)) < 2: zero = "0"
+            zero2 = ""
+            if len(str(tempEnd.month)) < 2: zero2 = "0"
+            tempEndDate = lagToDateTime(findMonthEnd(y,end.month,end.day, model), lag, model)
+            #tempEndDate = lagToDateTime(str(y)+"-"+zero+str(m)+"-"+str(end.day), lag)
+            zero = ""
+            if len(str(tempEndDate.month)) < 2: zero = "0"
+            startDateTime = lagToDateTime(startDate, lag, model)
+            endDateTime = lagToDateTime(findMonthEnd(y,end.month,end.day, model), lag, model)
+            addYear = 0
+            print endDateTime.month
+            print startDateTime.month
+            if endDateTime.year < startDateTime.year: addYear = 1
+            endDateTime = lagToDateTime(findMonthEnd(y+addYear,end.month,end.day, model), lag, model)
+            print startDate
+            print findMonthEnd(y,end.month,end.day, model)
+            print lagToDateTime(findMonthEnd(y,end.month,end.day, model), lag, model)
+            print lag
+            print endDateTime
+            print lagToDateTime(startDate, lag, model)
+            if endDateTime.month < startDateTime.month and endDateTime.year == startDateTime.year: addYear = 1
+            endDate = lagToDateStr(findMonthEnd(y+addYear, end.month, end.day, model), lag, model)
+            deltaDay = (datetime.datetime.strptime(endDate,'%Y-%m-%d')-datetime.datetime.strptime(lagToDateStr(startDate, lag, model),'%Y-%m-%d')).days + 1
+            for ens in range(ensNr):
+                zero = ""
+                if len(str(m)) < 2: zero = "0"
+                ncFile = dirLoc+str(y)+"-"+zero+str(m)+"-01/"+str(ens+1)+"/"+varFile
+                print ncFile
+                print lagToDateStr(startDate, lag, model)
+                print endDate
+                if ens == 0:
+                    temp = readNC(ncFile,varName, lagToDateStr(startDate, lag, model), endDay = endDate, model=model)
+                    tempData = np.zeros((ensNr, 180,360))
+                    tempData[ens,:,:] = aggregateTime(temp, var=varName)
+                else:
+                    tempData[ens,:,:] = aggregateTime(readNC(ncFile,varName, lagToDateStr(startDate, lag, model), endDay = endDate, model=model), var=varName)
+            data[lastEntry,:,:,:] = ensembleMean(tempData)
+            lastEntry += 1
+    return(data)
 
 def aggregateTime(data, timeDimension = 0, var="prec"):
     if var == "tas":
@@ -470,10 +532,27 @@ def nashSutcliffe(obs, mod):
   MSE = np.sum((obs-mod)**2)
   MSEclim = np.maximum(np.sum((obs - np.mean(obs))**2),1e-10)
   NSE = 1-MSE/MSEclim
-  return np.maximum(NSE,-999.)
+  return np.maximum(NSE,-100.)
 
 def RMSE(obs, mod):
   out = np.mean((obs-mod)**2)**0.5
   return out
 
-
+def crps(predictions, obs):
+  minVal = np.minimum(np.min(predictions), np.min(obs))*0.8
+  maxVal = np.maximum(np.max(predictions), np.max(obs))*1.2
+  vals = np.linspace(np.min(predictions), np.max(predictions), num=10000)
+  crps=0
+  try:
+    maxTime = len(obs)
+  except:
+    maxTime = 1
+  for t in range(maxTime):
+    try:
+      pcdf = ECDF(predictions[t,])
+      ocdf = vals >= obs[t]
+    except:
+      pcdf = ECDF(predictions)    
+      ocdf = vals >= obs
+    crps += np.sum(((pcdf(vals) - ocdf)**2)*(vals[1]-vals[0]))
+  return crps/maxTime

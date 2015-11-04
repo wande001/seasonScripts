@@ -36,8 +36,9 @@ startDays = np.tile(["01","16"],24)
 endDays = np.tile(["15","31","15","28","15","31","15","30","15","31","15","30","15","31","15","31","15","30","15","31","15","30","15","31"],2)
 inputMonth = np.tile(np.repeat(["01","02","03","04","05","06","07","08","09","10","11","12"],2),2)
 inputYear = np.repeat(["2010","2011"],24)
-varNames = ["correlation","signif", "bias","NSE", "RMSE"]
-varUnits = ["-","-","m3/s","-","m3/s"]
+varNames = ["correlation","signif", "bias","NSE", "RMSE","CRPS"]
+varUnits = ["-","-","m3/s","-","m3/s","m3/s"]
+MV = -999.
 createNetCDF(ncOutputFile, varNames, varUnits, np.arange(89.75,-90,-0.5), np.arange(-179.75,180,0.5), loop=True)
 posCount = 0
 
@@ -58,11 +59,12 @@ for event in range(0,end,step):
         spaceNMME = aggregateSpace(NMME, extent=space)
         spacePGF = aggregateSpace(dataPGF, extent=space)
         
-        corMap = np.zeros((180,360))+1e20
-        signMap = np.zeros((180,360))+1e20
-        biasMap = np.zeros((180,360))+1e20
-        NSmap = np.zeros((180,360))+1e20
-        RMSEmap = np.zeros((180,360))+1e20
+        corMap = np.zeros((180,360))-999.
+        signMap = np.zeros((180,360))-999.
+        biasMap = np.zeros((180,360))-999.
+        NSmap = np.zeros((180,360))-999.
+        RMSEmap = np.zeros((180,360))-999.
+        CPRSmap = np.zeros((180,360))-999.
         
         for i in range(180):
           print i
@@ -72,22 +74,26 @@ for event in range(0,end,step):
                 out = spearmanr(spacePGF[:,i,j], spaceNMME[:,i,j])
                 nsOut = nashSutcliffe(spacePGF[:,i,j], spaceNMME[:,i,j])
                 rmseOut = RMSE(spacePGF[:,i,j], spaceNMME[:,i,j])
+                crpsOut = crps(dataPGF[:,i,j], NMME[:,:,i,j])                
               except:
                 out = np.ones(2)
                 out[0] = 0.0
                 nsOut = 0.0
                 rmseOut = 0.0
+                crpsOut = 0.0
               corMap[i,j] = out[0]
               signMap[i,j] = out[1]
               biasMap[i,j] = np.mean(spaceNMME[:,i,j]) - np.mean(spacePGF[:,i,j])
               NSmap[i,j] = nsOut
               RMSEmap[i,j] = rmseOut
+              CRPSmap[i,j] = crpsOut
         
         data2NetCDF(ncOutputFile, "correlation", corMap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile, "signif", signMap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile, "bias", biasMap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile, "NSE", NSmap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile, "RMSE", RMSEmap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
+        data2NetCDF(ncOutputFile, "CRPS", CRPSmap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
     posCount += 1
     filecache = None
 
