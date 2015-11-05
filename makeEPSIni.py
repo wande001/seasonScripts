@@ -59,17 +59,17 @@ def ncFileName(model, varName, startTime, endTime):
 beginYear = 1981
 endYear = 2011
 forcingInput = "/tigress/nwanders/Scripts/Seasonal/"
-modelS = ["CanCM3","CanCM4", "FLOR"]
-precVarNameS = ["prlr","prlr","pr"]
+modelS = ["PGF"]
+precVarNameS = ["prec"]
 tempVarName = "tas"
 refInput = "/tigress/nwanders/Scripts/Seasonal/refData/"
-refModelS = ["PGF","CFS"] #["PGF", "CFS"]
+refModelS = ["PGF"] #["PGF", "CFS"]
 precRefVarName = "prec"
 tempRefVarName = "tas"
 precCorFactor = 1.0
 pctlInput = "/tigress/nwanders/Scripts/Seasonal/resultsNetCDF/"
 
-master = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/master.sh", "w")
+master = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/masterEPS.sh", "w")
 
 for m in range(len(modelS)):
   model = modelS[m]
@@ -84,7 +84,7 @@ for m in range(len(modelS)):
         startTime = datetime.datetime(year, month, day)
         endTime = datetime.datetime(year+1, month, day) - datetime.timedelta(days=1)
 
-        outputDir = "/tigress/nwanders/Scripts/hydroSeasonal/"+model+"/PCRGLOBWB/"+refModel+"/"+timeToStr(startTime)
+        outputDir = "/tigress/nwanders/Scripts/hydroSeasonal/EPS/PCRGLOBWB/"+refModel+"/"+timeToStr(startTime)
         stateDir = "/tigress/nwanders/Scripts/hydroSeasonal/"+refModel+"/states/"
 
         con = open("/tigress/nwanders/Scripts/hydroSeasonal/setup_Original.ini")
@@ -106,9 +106,9 @@ for m in range(len(modelS)):
           if mapEnd > -1:
             iniFile[i] = iniFile[i][0:mapEnd-8] + stateTime + iniFile[i][mapEnd+2:]
           if iniFile[i][0:15] == 'precipitationNC':
-            iniFile[i] = 'precipitationNC = '+forcingInput+model+"/"+ncFileName(model, precVarName, startTime, endTime)+'\n'
+            iniFile[i] = 'precipitationNC = /home/water1/niko/Scripts/Seasonal/refData/prec_PGF_PCR.nc4\n'
           if iniFile[i][0:13] == 'temperatureNC':
-            iniFile[i] = 'temperatureNC = '+forcingInput+model+"/"+ncFileName(model, tempVarName, startTime, endTime)+'\n'
+            iniFile[i] = 'temperatureNC = /home/water1/niko/Scripts/Seasonal/refData/tas_PGF_PCR.nc4\n'
           if iniFile[i][0:20] == 'precipitationVarName':
             iniFile[i] = 'precipitationVarName = '+precVarName+'\n'
           if iniFile[i][0:18] == 'temperatureVarName':
@@ -129,20 +129,20 @@ for m in range(len(modelS)):
             iniFile[i] = iniFile[i][0:startPath] + stateDir + iniFile[i][mapPath+8:]
 
 
-        out = open("/tigress/nwanders/Scripts/hydroSeasonal/config/setup_"+model+"_"+refModel+"_"+timeToStr(startTime)+".ini", "w")
+        out = open("/tigress/nwanders/Scripts/hydroSeasonal/config/setup_EPS_"+refModel+"_"+timeToStr(startTime)+".ini", "w")
         out.writelines(iniFile)
         out.close()
     
-        job = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/"+model+"_"+refModel+"_"+timeToStr(startTime)+".sh", "w")
+        job = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/EPS_"+refModel+"_"+timeToStr(startTime)+".sh", "w")
         job.writelines("#!/bin/bash\n")
         job.writelines("#SBATCH -n 1   # node count\n")
         job.writelines("#SBATCH -t 23:59:59\n")
         job.writelines("#SBATCH --mail-type=fail\n")
         job.writelines("#SBATCH --mail-user=nwanders@princeton.edu\n")
         job.writelines("cd /tigress/nwanders/Scripts/hydroSeasonal/\n")
-        job.writelines("python /tigress/nwanders/Scripts/PCR-GLOBWB/model/seasonal_runner.py /tigress/nwanders/Scripts/hydroSeasonal/config/setup_"+model+"_"+refModel+"_"+timeToStr(startTime)+".ini")
+        job.writelines("python /tigress/nwanders/Scripts/PCR-GLOBWB/model/seasonal_runner.py /tigress/nwanders/Scripts/hydroSeasonal/config/setup_EPS_"+refModel+"_"+timeToStr(startTime)+".ini")
         job.close()
     
-        master.writelines("sbatch /tigress/nwanders/Scripts/hydroSeasonal/jobs/"+model+"_"+refModel+"_"+timeToStr(startTime)+".sh\n")
+        master.writelines("sbatch /tigress/nwanders/Scripts/hydroSeasonal/jobs/EPS_"+refModel+"_"+timeToStr(startTime)+".sh\n"2)
 
 master.close()
