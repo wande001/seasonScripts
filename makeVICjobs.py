@@ -1,10 +1,10 @@
 import datetime
 
 beginYear = 1981
-endYear = 1982
+endYear = 2012
 forcingInput = "/tigress/nwanders/Scripts/Seasonal/"
-modelS = ["CanCM3","CanCM4", "FLOR"]
-precVarNameS = ["prlr","prlr","pr"]
+modelS = ["CCSM"]
+precVarNameS = "prec"
 tempVarName = "tas"
 refInput = "/tigress/nwanders/Scripts/Seasonal/refData/"
 refModelS = ["PGF"] #["PGF", "CFS"]
@@ -13,7 +13,7 @@ tempRefVarName = "tas"
 precCorFactor = 1.0
 pctlInput = "/tigress/nwanders/Scripts/Seasonal/resultsNetCDF/"
 
-master = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/VICmaster.sh", "w")
+master = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/CCSM_VICmaster.sh", "w")
 
 for m in range(len(modelS)):
   model = modelS[m]
@@ -24,10 +24,7 @@ for m in range(len(modelS)):
     for year in range(beginYear,endYear+1):
       for month in range(1,13):
         startTime = '%d%.2d01' %(year, month)
-        if month != 12:
-          endTimeTemp = datetime.datetime(year+1, month, 1) - datetime.timedelta(days=1)
-        else:
-          endTimeTemp = datetime.datetime(year+1, 1, 1) - datetime.timedelta(days=1)
+        endTimeTemp = datetime.datetime(year+1, month, 1) - datetime.timedelta(days=1)
         endTime = '%d%.2d%.2d' %(endTimeTemp.year, endTimeTemp.month, endTimeTemp.day)
  
         job = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/VIC_"+model+"_"+refModel+"_"+startTime+".sh", "w")

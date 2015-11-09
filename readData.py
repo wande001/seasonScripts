@@ -253,12 +253,19 @@ def returnSeasonalForecast(dateInput, endDay, model, varName, lag, month = 0, en
                 print lagToDateStr(startDate, lag, model)
                 print endDate
                 if ens == 0:
-                    temp = readNC(ncFile,varName, lagToDateStr(startDate, lag, model), endDay = endDate, model=model)
+                    try:
+                        temp = readNC(ncFile,varName, lagToDateStr(startDate, lag, model), endDay = endDate, model=model)
+                    except:
+                        temp = np.zeros((360,720))+np.nan
                     tempData = np.zeros((ensNr, 360,720))
                     tempData[ens,:,:] = aggregateTime(temp, var=varName)
                 else:
-                    tempData[ens,:,:] = aggregateTime(readNC(ncFile,varName, lagToDateStr(startDate, lag, model), endDay = endDate, model=model), var=varName)
-            data[lastEntry,:,:,:] = ensembleMean(tempData)
+                    try:
+                        temp = readNC(ncFile,varName, lagToDateStr(startDate, lag, model), endDay = endDate, model=model)
+                    except:
+                        temp = np.zeros((360,720))+np.nan
+                    tempData[ens,:,:] = aggregateTime(temp, var=varName)
+            data[lastEntry,:,:,:] = tempData
             lastEntry += 1
     return(data)
 
@@ -310,17 +317,26 @@ def returnVICForecast(dateInput, endDay, model, varName, lag, month = 0, ensNr =
             for ens in range(ensNr):
                 zero = ""
                 if len(str(m)) < 2: zero = "0"
-                ncFile = dirLoc+str(y)+"-"+zero+str(m)+"-01/"+str(ens+1)+"/"+varFile
+                fileLoc = "%d-%.2d-01/%d/" %(startDateTime.year, startDateTime.month, ens+1)
+                varFile = "output_%d%.2d%.2d.nc" %(startDateTime.year,startDateTime.month, 1)
+                ncFile = dirLoc+fileLoc+varFile
                 print ncFile
                 print lagToDateStr(startDate, lag, model)
                 print endDate
                 if ens == 0:
-                    temp = readNC(ncFile,varName, lagToDateStr(startDate, lag, model), endDay = endDate, model=model)
+                    try:
+                        temp = readNC(ncFile,varName, lagToDateStr(startDate, lag, model), endDay = endDate, model=model)
+                    except:
+                        temp = np.zeros((180,360))+np.nan
                     tempData = np.zeros((ensNr, 180,360))
                     tempData[ens,:,:] = aggregateTime(temp, var=varName)
                 else:
-                    tempData[ens,:,:] = aggregateTime(readNC(ncFile,varName, lagToDateStr(startDate, lag, model), endDay = endDate, model=model), var=varName)
-            data[lastEntry,:,:,:] = ensembleMean(tempData)
+                    try:
+                        temp = readNC(ncFile,varName, lagToDateStr(startDate, lag, model), endDay = endDate, model=model)
+                    except:
+                        temp = np.zeros((180,360))+np.nan
+                    tempData[ens,:,:] = aggregateTime(temp, var=varName)
+            data[lastEntry,:,:,:] = tempData
             lastEntry += 1
     return(data)
 
@@ -373,6 +389,39 @@ def readForcing(ncFile, varName, dateInput, endDay, lag=0, model="PGF"):
     deltaDay = lagToDateTime(endDay, lag, model).day - lagToDateTime(dateInput, lag, model).day + 1
     deltaYear = lagToDateTime(endDay, lag, model).year - lagToDateTime(dateInput, lag, model).year + 1
     data = np.zeros((deltaYear,360,720))
+    print data.shape
+    start = datetime.datetime.strptime(str(dateInput),'%Y-%m-%d')
+    end = datetime.datetime.strptime(str(endDay),'%Y-%m-%d')
+    lastEntry = 0
+    m = start.month
+    d = start.day
+    for y in range(start.year, end.year+1):
+        tempStartDate = datetime.datetime.strptime(str(str(y)+"-"+str(m)+"-"+str(d)),'%Y-%m-%d')
+        zero = ""
+        if len(str(m)) < 2: zero = "0"
+        zeroDay = ""
+        if len(str(start.day)) < 2: zeroDay="0"
+        startDate = str(tempStartDate.year)+"-"+zero+str(tempStartDate.month)+"-"+zeroDay+str(start.day)
+        tempEnd = datetime.datetime.strptime(str(str(y+1)+"-"+str(m)+"-01"),'%Y-%m-%d') - datetime.timedelta (days = 1)
+        print tempStartDate
+        if tempStartDate >= start and tempStartDate < (end - datetime.timedelta (days = 1)):
+            startDateTime = lagToDateTime(startDate, lag, model)
+            endDateTime = lagToDateTime(findMonthEnd(y,end.month,end.day, model), lag, model)
+            addYear = 0
+            if endDateTime.year < startDateTime.year: addYear = 1
+            endDateTime = lagToDateTime(findMonthEnd(y+addYear,end.month,end.day, model), lag, model)
+            if endDateTime.month < startDateTime.month and endDateTime.year == startDateTime.year: addYear = 1
+            endDate = lagToDateStr(findMonthEnd(y+addYear, end.month, end.day, model), lag, model)
+            print lagToDateStr(startDate, lag, model)
+            print endDate
+            data[lastEntry,:,:] = aggregateTime(readNC(ncFile, varName, lagToDateStr(startDate, lag, model), endDay=endDate, model="PGF"), var=varName)
+            lastEntry += 1
+    return(data)
+
+def readForcingVIC(ncFile, varName, dateInput, endDay, lag=0, model="PGF"):
+    deltaDay = lagToDateTime(endDay, lag, model).day - lagToDateTime(dateInput, lag, model).day + 1
+    deltaYear = lagToDateTime(endDay, lag, model).year - lagToDateTime(dateInput, lag, model).year + 1
+    data = np.zeros((deltaYear,180,360))
     print data.shape
     start = datetime.datetime.strptime(str(dateInput),'%Y-%m-%d')
     end = datetime.datetime.strptime(str(endDay),'%Y-%m-%d')
@@ -529,30 +578,58 @@ def returnSeasonalEnsembleForecast(dateInput, endDay, model, varName, lag, month
     return(data)
 
 def nashSutcliffe(obs, mod):
-  MSE = np.sum((obs-mod)**2)
-  MSEclim = np.maximum(np.sum((obs - np.mean(obs))**2),1e-10)
+  obsSel = np.isnan(obs) == False
+  modSel = np.isnan(mod) == False
+  sel = obsSel & modSel
+  MSE = np.sum((obs[sel]-mod[sel])**2)
+  MSEclim = np.maximum(np.sum((obs[sel] - np.mean(obs[sel]))**2),1e-10)
   NSE = 1-MSE/MSEclim
   return np.maximum(NSE,-100.)
 
 def RMSE(obs, mod):
-  out = np.mean((obs-mod)**2)**0.5
+  obsSel = np.isnan(obs) == False
+  modSel = np.isnan(mod) == False
+  sel = obsSel & modSel
+  out = np.mean((obs[sel]-mod[sel])**2)**0.5
   return out
 
-def crps(predictions, obs):
-  minVal = np.minimum(np.min(predictions), np.min(obs))*0.8
-  maxVal = np.maximum(np.max(predictions), np.max(obs))*1.2
-  vals = np.linspace(np.min(predictions), np.max(predictions), num=10000)
-  crps=0
-  try:
-    maxTime = len(obs)
-  except:
-    maxTime = 1
-  for t in range(maxTime):
-    try:
-      pcdf = ECDF(predictions[t,])
-      ocdf = vals >= obs[t]
-    except:
-      pcdf = ECDF(predictions)    
-      ocdf = vals >= obs
-    crps += np.sum(((pcdf(vals) - ocdf)**2)*(vals[1]-vals[0]))
-  return crps/maxTime
+def ecdf(x):
+  # normalize X to sum to 1
+  sel = np.isnan(x) == False
+  x = x[sel] / np.sum(x[sel])
+  return np.cumsum(x)
+
+def crps(obs, pred):
+  obsSel = np.isnan(obs) == False
+  modSel = np.isnan(predictions[:,0]) == False
+  sel = obsSel & modSel
+  pred = pred[sel,:]
+  obs = obs[sel]
+  minVal = np.minimum(np.min(pred), np.min(obs))*0.8
+  maxVal = np.maximum(np.max(pred), np.max(obs))*1.2
+  vals = np.linspace(minVal, maxVal, num=10)
+  newPred = np.repeat(pred, len(vals)).reshape(pred.shape[0], pred.shape[1], len(vals))
+  newVals = np.tile(np.tile(vals,pred.shape[1]), pred.shape[0]).reshape(pred.shape[0], pred.shape[1], len(vals))
+  pcdf = np.mean(newVals > newPred, axis=1)
+  ocdf = np.tile(vals, len(obs)).reshape(len(obs), len(vals)) >= np.repeat(obs, len(vals)).reshape(len(obs), len(vals))
+  out = np.sum(((pcdf-ocdf)**2)*(vals[1]-vals[0]))/len(obs)
+  return out
+
+#def crps(obs, predictions):
+#  minVal = np.minimum(np.min(predictions), np.min(obs))*0.8
+#  maxVal = np.maximum(np.max(predictions), np.max(obs))*1.2
+#  vals = np.linspace(np.min(predictions), np.max(predictions), num=10000)
+#  crps=0
+#  try:
+#    maxTime = len(obs)
+#  except:
+#    maxTime = 1
+#  for t in range(maxTime):
+#    try:
+#      pcdf = ECDF(predictions[t,])
+#      ocdf = vals >= obs[t]
+#    except:
+#      pcdf = ECDF(predictions)    
+#      ocdf = vals >= obs
+#    crps += np.sum(((pcdf(vals) - ocdf)**2)*(vals[1]-vals[0]))
+#  return crps/maxTime

@@ -41,6 +41,14 @@ if model == "FLOR":
     dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/FLOR/PCRGLOBWB/"+ref+"/"
     ensNr = 12
 
+if model == "EPS":
+    dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/EPS/PCRGLOBWB/"+ref+"/"
+    ensNr = 10
+
+if model == "CCSM":
+    dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/CCSM/PCRGLOBWB/"+ref+"/"
+    ensNr = 10
+
 if ref == "PGF":
     if varName == "discharge":
         ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/netcdf/discharge_seasoAvg_output.nc"
@@ -88,7 +96,7 @@ for event in range(0,end,step):
     
     for space in range(1):
         print space
-        spaceNMME = ensembleMean(NMME)
+        spaceNMME = ensembleMean(NMME, ensDimension = 1)
         spacePGF = aggregateSpace(dataPGF, extent=space)
         
         corMap = np.zeros((360,720))-999.
@@ -102,6 +110,8 @@ for event in range(0,end,step):
           print i
           for j in range(720):
             if spacePGF[1,i,j] < 1e+10:
+              #print dataPGF.shape, NMME.shape, spacePGF.shape, spaceNMME.shape
+              #print crps(dataPGF[:,i,j], NMME[:,:,i,j])
               try:
                 out = spearmanr(spacePGF[:,i,j], spaceNMME[:,i,j])
                 nsOut = nashSutcliffe(spacePGF[:,i,j], spaceNMME[:,i,j])

@@ -159,7 +159,39 @@ def ncFileName(model, varName, startTime, ensNumber = 1, dirLoc = '/tigress/nwan
     if model == "CanCM4":
         modelName = "_day_CanCM4_"
         ncFile = dirLoc+model+'/'+varName+modelName+yearMonth(startTime)+"_r"+str(ensNumber)+"i1p1_"+yearMonthDay(startTime)+"-"+yearMonthDay(findMonthEnd(endTime, model))+".nc4"
-    return(ncFile)   
+    if model == "CCSM":
+        modelName = "_day_CCSM4_"
+        ncFile = dirLoc+model+'/'+varName+modelName+yearMonth(startTime)+"01_r"+str(ensNumber)+"i1p1_"+yearMonthDay(startTime)+"-"+yearMonthDay(findMonthEnd(endTime, model))+".nc4"
+    return(ncFile)
+
+def ncFileNameEns(model, varName, startTime, endTime, ens, dirLoc = '/tigress/nwanders/Scripts/Seasonal/'):
+    if model == "FLOR":
+        modelName = "_day_GFDL-FLORB01_FLORB01-P1-ECDA-v3.1-"
+        ncFile = dirLoc+model+'/'+varName+modelName+monthYear(startTime)+"_r"+str(ens)+"i1p1_"+yearMonthDay(startTime)+"-"+yearMonthDay(findMonthEnd(endTime, model))+".nc4"
+    if model == "CanCM3":
+        modelName = "_day_CanCM3_"
+        ncFile = dirLoc+model+'/'+varName+modelName+yearMonth(startTime)+"_r"+str(ens)+"i1p1_"+yearMonthDay(startTime)+"-"+yearMonthDay(findMonthEnd(endTime, model))+".nc4"
+    if model == "CanCM4":
+        modelName = "_day_CanCM4_"
+        ncFile = dirLoc+model+'/'+varName+modelName+yearMonth(startTime)+"_r"+str(ens)+"i1p1_"+yearMonthDay(startTime)+"-"+yearMonthDay(findMonthEnd(endTime, model))+".nc4"
+    if model == "CCSM":
+        modelName = "_day_CCSM4_"
+        ncFile = dirLoc+model+'/'+varName+modelName+yearMonth(startTime)+"01_r"+str(ens)+"i1p1_"+yearMonthDay(startTime)+"-"+yearMonthDay(findMonthEnd(endTime, model))+".nc4"
+    return(ncFile)
+
+
+def checkForcingFiles(model, precName, tempName, startTime, endTime):
+    totEns = 10
+    if model == "FLOR":
+        totEns = 12
+    ens = 0
+    fileExist = True
+    while ens < totEns and fileExist:
+        print ncFileNameEns(model, precName, startTime, endTime, ens+1)
+        fileExist = os.path.isfile(ncFileNameEns(model, precName, startTime, endTime, ens+1)) \
+           and os.path.isfile(ncFileNameEns(model, tempName, startTime, endTime, ens+1))
+        ens += 1
+    return fileExist
 
 def readNC(ncFile,varName, DOY=1):
     
@@ -359,6 +391,8 @@ precName = "prlr"
 if model == "FLOR":
   totEns = 12
   precName = "pr"
+if model == "CCSM":
+  precName = "prec"
 
 precipitationInputCDF = '/tigress/nwanders/Scripts/Seasonal/resultsNetCDF/'+model+"_"+precName+'_pctl.nc4'
 temperatureInputCDF = '/tigress/nwanders/Scripts/Seasonal/resultsNetCDF/'+model+'_tas_pctl.nc4'
@@ -366,70 +400,71 @@ temperatureInputCDF = '/tigress/nwanders/Scripts/Seasonal/resultsNetCDF/'+model+
 precipitationReferenceCDF = '/tigress/nwanders/Scripts/Seasonal/resultsNetCDF/'+refForcing+'_prec_pctl.nc4'
 temperatureReferenceCDF = '/tigress/nwanders/Scripts/Seasonal/resultsNetCDF/'+refForcing+'_tas_pctl.nc4'
 
-for ens in range(totEns):
-  forecastDate = startTime
-  year = startTime.year
-  month = startTime.month
-  forcing_file = '/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/forcing/forcing_%d%.2d01' %(year, month)
-  fp = open(forcing_file,'wb')
-  d = 0
-  day = forecastDate + datetime.timedelta(days=d)
-  while endTime >= day:
-    print day
-    if day.day == 1:
-      precInputCDF = readNCMatching(precipitationInputCDF, precName, DOY=day.month-1)
-      tasInputCDF = readNCMatching(temperatureInputCDF, "tas", DOY=day.month-1)
-      precRefCDF = readNCMatching(precipitationReferenceCDF, "prec", DOY=day.month-1)
-      tasRefCDF = readNCMatching(temperatureReferenceCDF, "tas", DOY=day.month-1)
-      windNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/wind_clim_PGF.nc","wind", DOY=day.month-1)
-    try:
-      precNC = readNC(ncFileName(model, precName, forecastDate, ensNumber = ens+1),precName, DOY=d)
-      tempNC = readNC(ncFileName(model, "tas", forecastDate, ensNumber = ens+1),"tas", DOY=d)
-    except:
-      print "Leap year"
-    precNC = matchCDF(precNC, precInputCDF, precRefCDF, var="prec")
-    tempNC = matchCDF(tempNC, tasInputCDF, tasRefCDF, var="tas")
-    prec = np.zeros((180,360), dtype=np.float32)
-    prec[:,0:180] = precNC[::-1,180:360]*1000.
-    prec[:,180:360] = precNC[::-1,0:180]*1000.
-    tmax = np.zeros((180,360), dtype=np.float32)
-    tmax[:,0:180] = tempNC[::-1,180:360]
-    tmax[:,180:360] = tempNC[::-1,0:180]
-    tmin = np.copy(tmax)
-    wind = np.array(windNC, dtype=np.float32)
-    #Append to the outgoing file
-    prec.tofile(fp)
-    tmax.tofile(fp)
-    tmin.tofile(fp)
-    wind.tofile(fp)
-    d += 1
+if checkForcingFiles(model, precName, "tas", startTime, endTime):
+  for ens in range(totEns):
+    forecastDate = startTime
+    year = startTime.year
+    month = startTime.month
+    forcing_file = '/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/forcing/forcing_%d%.2d01' %(year, month)
+    fp = open(forcing_file,'wb')
+    d = 0
     day = forecastDate + datetime.timedelta(days=d)
-  #Close the outgoing file
-  fp.close()
+    while endTime >= day:
+      print day
+      if day.day == 1:
+        precInputCDF = readNCMatching(precipitationInputCDF, precName, DOY=day.month-1)
+        tasInputCDF = readNCMatching(temperatureInputCDF, "tas", DOY=day.month-1)
+        precRefCDF = readNCMatching(precipitationReferenceCDF, "prec", DOY=day.month-1)
+        tasRefCDF = readNCMatching(temperatureReferenceCDF, "tas", DOY=day.month-1)
+        windNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/wind_clim_PGF.nc","wind", DOY=day.month-1)
+      try:
+        precNC = readNC(ncFileName(model, precName, forecastDate, ensNumber = ens+1),precName, DOY=d)
+        tempNC = readNC(ncFileName(model, "tas", forecastDate, ensNumber = ens+1),"tas", DOY=d)
+      except:
+        print "Leap year"
+      precNC = matchCDF(precNC, precInputCDF, precRefCDF, var="prec")
+      tempNC = matchCDF(tempNC, tasInputCDF, tasRefCDF, var="tas")
+      prec = np.zeros((180,360), dtype=np.float32)
+      prec[:,0:180] = precNC[::-1,180:360]*1000.
+      prec[:,180:360] = precNC[::-1,0:180]*1000.
+      tmax = np.zeros((180,360), dtype=np.float32)
+      tmax[:,0:180] = tempNC[::-1,180:360]
+      tmax[:,180:360] = tempNC[::-1,0:180]
+      tmin = np.copy(tmax)
+      wind = np.array(windNC, dtype=np.float32)
+      #Append to the outgoing file
+      prec.tofile(fp)
+      tmax.tofile(fp)
+      tmin.tofile(fp)
+      wind.tofile(fp)
+      d += 1
+      day = forecastDate + datetime.timedelta(days=d)
+    #Close the outgoing file
+    fp.close()
   
-  VIC_global = '/tigress/nwanders/Scripts/VIC/VIC_4.0.5_image_mode/VIC_dev.exe'
+    VIC_global = '/tigress/nwanders/Scripts/VIC/VIC_4.0.5_image_mode/VIC_dev.exe'
   
-  settingsFile = Prepare_VIC_Global_Parameter_File(forecastDate,datetime.datetime(forecastDate.year, forecastDate.month, forecastDate.day) + datetime.timedelta(days = d),dims,model, refForcing)
+    settingsFile = Prepare_VIC_Global_Parameter_File(forecastDate,datetime.datetime(forecastDate.year, forecastDate.month, forecastDate.day) + datetime.timedelta(days = d),dims,model, refForcing)
   
-  print time.strftime("%H:%M:%S")
-  os.system(VIC_global + ' -g '+settingsFile+' >& /tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/logFiles/VIC_'+model+'%d%.2d_%d.txt' %(forecastDate.year, forecastDate.month, ens+1))
-  print time.strftime("%H:%M:%S")
+    print time.strftime("%H:%M:%S")
+    os.system(VIC_global + ' -g '+settingsFile+' >& /tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/logFiles/VIC_'+model+'%d%.2d_%d.txt' %(forecastDate.year, forecastDate.month, ens+1))
+    print time.strftime("%H:%M:%S")
   
-  varNames = ["prec","evap", "runoff", "baseflow", "wdew", "sm1", "sm2", "sm3", "evap_canop", "evap_veg", "evap_bare", "net_short", "net_long", "r_net", "surf_temp", "swq", "snow_depth", "snow_canop"]
-  fileName = '/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/resultRAW/output_grid_%d%.2d%.2d00.ctl' %(forecastDate.year, forecastDate.month, forecastDate.day, forecastDate.year, forecastDate.month, forecastDate.day)
-  try:
-    os.mkdir('/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/%d' %(forecastDate.year, forecastDate.month, forecastDate.day,ens+1))
-  except:
-    foo = 0
-  ncFile = '/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/%d/output_%d%.2d%.2d.nc' %(forecastDate.year, forecastDate.month, forecastDate.day,ens+1,forecastDate.year, forecastDate.month, forecastDate.day)
-  data = readGrads(fileName, "prec", str(1), lon=[-179.5, 179.5])
-  createNetCDF(ncFile, varNames, ["mm","mm","mm","mm","mm","mm","mm","mm","mm","mm","mm","W/m^2","W/m^2","W/m^2", "C", "mm","cm","mm"], latitudes=data.latitudes, longitudes=data.longitudes, loop=True)
+    varNames = ["prec","evap", "runoff", "baseflow", "wdew", "sm1", "sm2", "sm3", "evap_canop", "evap_veg", "evap_bare", "net_short", "net_long", "r_net", "surf_temp", "swq", "snow_depth", "snow_canop"]
+    fileName = '/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/resultRAW/output_grid_%d%.2d%.2d00.ctl' %(forecastDate.year, forecastDate.month, forecastDate.day, forecastDate.year, forecastDate.month, forecastDate.day)
+    try:
+      os.mkdir('/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/%d' %(forecastDate.year, forecastDate.month, forecastDate.day,ens+1))
+    except:
+      foo = 0
+    ncFile = '/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/%d/output_%d%.2d%.2d.nc' %(forecastDate.year, forecastDate.month, forecastDate.day,ens+1,forecastDate.year, forecastDate.month, forecastDate.day)
+    data = readGrads(fileName, "prec", str(1), lon=[-179.5, 179.5])
+    createNetCDF(ncFile, varNames, ["mm","mm","mm","mm","mm","mm","mm","mm","mm","mm","mm","W/m^2","W/m^2","W/m^2", "C", "mm","cm","mm"], latitudes=data.latitudes, longitudes=data.longitudes, loop=True)
   
-  for i in range(d):
-    print i
-    for var in varNames:
-      data = readGrads(fileName, var, str(i+1), lon=[-179.5, 179.5])
-      data2NetCDF(ncFile, var, data, data.time, posCnt = i)
-  print time.strftime("%H:%M:%S")
-  os.remove(forcing_file)
-  shutil.rmtree('/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/resultRAW' %(forecastDate.year, forecastDate.month, forecastDate.day))
+    for i in range(d):
+      print i
+      for var in varNames:
+        data = readGrads(fileName, var, str(i+1), lon=[-179.5, 179.5])
+        data2NetCDF(ncFile, var, data, data.time, posCnt = i)
+    print time.strftime("%H:%M:%S")
+    os.remove(forcing_file)
+    shutil.rmtree('/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/resultRAW' %(forecastDate.year, forecastDate.month, forecastDate.day))

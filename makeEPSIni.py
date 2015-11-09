@@ -57,7 +57,7 @@ def ncFileName(model, varName, startTime, endTime):
     return(ncFile)
 
 beginYear = 1981
-endYear = 2011
+endYear = 2012
 forcingInput = "/tigress/nwanders/Scripts/Seasonal/"
 modelS = ["PGF"]
 precVarNameS = ["prec"]
@@ -106,15 +106,17 @@ for m in range(len(modelS)):
           if mapEnd > -1:
             iniFile[i] = iniFile[i][0:mapEnd-8] + stateTime + iniFile[i][mapEnd+2:]
           if iniFile[i][0:15] == 'precipitationNC':
-            iniFile[i] = 'precipitationNC = /home/water1/niko/Scripts/Seasonal/refData/prec_PGF_PCR.nc4\n'
+            iniFile[i] = 'precipitationNC = /tigress/nwanders/Scripts/Seasonal/refData/prec_PGF_PCR.nc4\n'
           if iniFile[i][0:13] == 'temperatureNC':
-            iniFile[i] = 'temperatureNC = /home/water1/niko/Scripts/Seasonal/refData/tas_PGF_PCR.nc4\n'
+            iniFile[i] = 'temperatureNC = /tigress/nwanders/Scripts/Seasonal/refData/tas_PGF_PCR.nc4\n'
           if iniFile[i][0:20] == 'precipitationVarName':
             iniFile[i] = 'precipitationVarName = '+precVarName+'\n'
           if iniFile[i][0:18] == 'temperatureVarName':
             iniFile[i] = 'temperatureVarName = '+tempVarName+'\n'
           if iniFile[i][0:30] == 'precipitationCorrectionFactor':
             iniFile[i] = 'precipitationCorrectionFactor = '+precCorFactor+'\n'
+          if iniFile[i][0:11] == 'matchingCDF':
+            iniFile[i] = 'matchingCDF = False'
           if iniFile[i][0:21] == 'precipitationInputCDF':
             iniFile[i] = 'precipitationInputCDF = '+pctlInput+model+"_"+precVarName+'_pctl.nc4'+'\n'
           if iniFile[i][0:19] == 'temperatureInputCDF':
@@ -143,6 +145,6 @@ for m in range(len(modelS)):
         job.writelines("python /tigress/nwanders/Scripts/PCR-GLOBWB/model/seasonal_runner.py /tigress/nwanders/Scripts/hydroSeasonal/config/setup_EPS_"+refModel+"_"+timeToStr(startTime)+".ini")
         job.close()
     
-        master.writelines("sbatch /tigress/nwanders/Scripts/hydroSeasonal/jobs/EPS_"+refModel+"_"+timeToStr(startTime)+".sh\n"2)
+        master.writelines("sbatch /tigress/nwanders/Scripts/hydroSeasonal/jobs/EPS_"+refModel+"_"+timeToStr(startTime)+".sh\n")
 
 master.close()

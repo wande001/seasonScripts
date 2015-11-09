@@ -408,6 +408,7 @@ dims['maxlat'] = dims['minlat'] + dims['res']*(dims['nlat']-1)
 dims['maxlon'] = dims['minlon'] + dims['res']*(dims['nlon']-1)
 
 totEns = 10
+randomYear = np.random.choice(np.arange(1981,2013), totEns, replace=False)
 
 for ens in range(totEns):
   forecastDate = startTime
@@ -418,12 +419,11 @@ for ens in range(totEns):
   d = 0
   day = forecastDate + datetime.timedelta(days=d)
   while endTime >= day:
-    print day
     if day.day == 1:
       windNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/wind_clim_PGF.nc","wind", DOY=day.month-1)
     try:
-      precNC = readNCforcing("/tigress/nwanders/Scripts/Seasonal/refData/prec_PGF_PCR.nc4","prec", dateInput=day, endDay = "None")
-      tempNC = readNCforcing("/tigress/nwanders/Scripts/Seasonal/refData/tas_PGF_PCR.nc4","tas", dateInput=day, endDay = "None")
+      precNC = readNCforcing("/tigress/nwanders/Scripts/Seasonal/refData/prec_PGF_PCR.nc4","prec", dateInput=datetime.datetime(randomYear[ens], day.month, day.day), endDay = "None")
+      tempNC = readNCforcing("/tigress/nwanders/Scripts/Seasonal/refData/tas_PGF_PCR.nc4","tas", dateInput=datetime.datetime(randomYear[ens], day.month, day.day), endDay = "None")
     except:
       print "Leap year"
     prec = np.zeros((180,360), dtype=np.float32)
