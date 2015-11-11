@@ -317,8 +317,8 @@ def returnVICForecast(dateInput, endDay, model, varName, lag, month = 0, ensNr =
             for ens in range(ensNr):
                 zero = ""
                 if len(str(m)) < 2: zero = "0"
-                fileLoc = "%d-%.2d-01/%d/" %(startDateTime.year, startDateTime.month, ens+1)
-                varFile = "output_%d%.2d%.2d.nc" %(startDateTime.year,startDateTime.month, 1)
+                fileLoc = "%d-%.2d-01/%d/" %(tempStartDate.year, tempStartDate.month, ens+1)
+                varFile = "output_%d%.2d%.2d.nc" %(tempStartDate.year,tempStartDate.month, 1)
                 ncFile = dirLoc+fileLoc+varFile
                 print ncFile
                 print lagToDateStr(startDate, lag, model)
@@ -601,7 +601,7 @@ def ecdf(x):
 
 def crps(obs, pred):
   obsSel = np.isnan(obs) == False
-  modSel = np.isnan(predictions[:,0]) == False
+  modSel = np.isnan(pred[:,0]) == False
   sel = obsSel & modSel
   pred = pred[sel,:]
   obs = obs[sel]

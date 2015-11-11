@@ -111,18 +111,24 @@ for event in range(0,end,step):
           for j in range(720):
             if spacePGF[1,i,j] < 1e+10:
               #print dataPGF.shape, NMME.shape, spacePGF.shape, spaceNMME.shape
-              #print crps(dataPGF[:,i,j], NMME[:,:,i,j])
+              print spearmanr(spacePGF[:,i,j], spaceNMME[:,i,j]) #crps(dataPGF[:,i,j], NMME[:,:,i,j])
               try:
                 out = spearmanr(spacePGF[:,i,j], spaceNMME[:,i,j])
-                nsOut = nashSutcliffe(spacePGF[:,i,j], spaceNMME[:,i,j])
-                rmseOut = RMSE(spacePGF[:,i,j], spaceNMME[:,i,j])
-                crpsOut = crps(dataPGF[:,i,j], NMME[:,:,i,j])
               except:
                 out = np.ones(2)
-                out[0] = 0.0
-                nsOut = 0.0
-                rmseOut = 0.0
-                crpsOut = 0.0
+                out[0] = -999.
+              try:
+                nsOut = nashSutcliffe(spacePGF[:,i,j], spaceNMME[:,i,j])
+              except:
+                nsOut = -999.
+              try:
+                rmseOut = RMSE(spacePGF[:,i,j], spaceNMME[:,i,j])
+              except:
+                rmseOut = -999.
+              try:
+                crpsOut = crps(dataPGF[:,i,j], NMME[:,:,i,j])
+              except:
+                crpsOut = -999.
               corMap[i,j] = out[0]
               signMap[i,j] = out[1]
               biasMap[i,j] = np.mean(spaceNMME[:,i,j]) - np.mean(spacePGF[:,i,j])
