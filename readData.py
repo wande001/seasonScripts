@@ -529,30 +529,43 @@ def returnSeasonalEnsembleForecast(dateInput, endDay, model, varName, lag, month
     return(data)
 
 def nashSutcliffe(obs, mod):
-  MSE = np.sum((obs-mod)**2)
-  MSEclim = np.maximum(np.sum((obs - np.mean(obs))**2),1e-10)
+  obsSel = np.isnan(obs) == False
+  modSel = np.isnan(mod) == False
+  sel = obsSel & modSel
+  MSE = np.sum((obs[sel]-mod[sel])**2)
+  MSEclim = np.maximum(np.sum((obs[sel] - np.mean(obs[sel]))**2),1e-10)
   NSE = 1-MSE/MSEclim
   return np.maximum(NSE,-100.)
 
 def RMSE(obs, mod):
-  out = np.mean((obs-mod)**2)**0.5
+  obsSel = np.isnan(obs) == False
+  modSel = np.isnan(mod) == False
+  sel = obsSel & modSel
+  out = np.mean((obs[sel]-mod[sel])**2)**0.5
   return out
 
 def crps(predictions, obs):
-  minVal = np.minimum(np.min(predictions), np.min(obs))*0.8
-  maxVal = np.maximum(np.max(predictions), np.max(obs))*1.2
-  vals = np.linspace(np.min(predictions), np.max(predictions), num=10000)
+  obsSel = np.isnan(obs) == False
+  modSel = np.isnan(predictions[:,0]) == False
+  sel = obsSel & modSel
+  minVal = np.minimum(np.min(predictions[sel,:]), np.min(obs[sel]))*0.8
+  maxVal = np.maximum(np.max(predictions[sel,:]), np.max(obs[sel]))*1.2
+  vals = np.linspace(np.min(predictions[sel,:]), np.max(predictions[sel,:]), num=10000)
   crps=0
+  totPred = 0
   try:
     maxTime = len(obs)
   except:
     maxTime = 1
   for t in range(maxTime):
-    try:
-      pcdf = ECDF(predictions[t,])
-      ocdf = vals >= obs[t]
-    except:
-      pcdf = ECDF(predictions)    
-      ocdf = vals >= obs
-    crps += np.sum(((pcdf(vals) - ocdf)**2)*(vals[1]-vals[0]))
-  return crps/maxTime
+    if sel[t] == True:
+      try:
+        pcdf = ECDF(predictions[t,])
+        ocdf = vals >= obs[t]
+        totPred += 1
+      except:
+        pcdf = ECDF(predictions)    
+        ocdf = vals >= obs
+        totPred += 1
+      crps += np.sum(((pcdf(vals) - ocdf)**2)*(vals[1]-vals[0]))
+  return crps/totPred
