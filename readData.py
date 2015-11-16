@@ -599,6 +599,10 @@ def ecdf(x):
   x = x[sel] / np.sum(x[sel])
   return np.cumsum(x)
 
+def normalize(x):
+  out = (x-np.min(x))/(np.max(x)-np.min(x))
+  return out
+
 def crps(obs, pred):
   obsSel = np.isnan(obs) == False
   modSel = np.isnan(pred[:,0]) == False
