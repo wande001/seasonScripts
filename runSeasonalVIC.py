@@ -450,7 +450,7 @@ if checkForcingFiles(model, precName, "tas", startTime, endTime):
     os.system(VIC_global + ' -g '+settingsFile+' >& /tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/logFiles/VIC_'+model+'%d%.2d_%d.txt' %(forecastDate.year, forecastDate.month, ens+1))
     print time.strftime("%H:%M:%S")
   
-    varNames = ["prec","evap", "runoff", "baseflow", "wdew", "sm1", "sm2", "sm3", "evap_canop", "evap_veg", "evap_bare", "net_short", "net_long", "r_net", "surf_temp", "swq", "snow_depth", "snow_canop"]
+    varNames = ["prec","evap", "runoff", "baseflow", "sm1", "sm2", "sm3", "surf_temp", "swq", "snow_depth"]
     fileName = '/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/resultRAW/output_grid_%d%.2d%.2d00.ctl' %(forecastDate.year, forecastDate.month, forecastDate.day, forecastDate.year, forecastDate.month, forecastDate.day)
     try:
       os.mkdir('/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/%d' %(forecastDate.year, forecastDate.month, forecastDate.day,ens+1))
@@ -458,7 +458,7 @@ if checkForcingFiles(model, precName, "tas", startTime, endTime):
       foo = 0
     ncFile = '/tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/%d/output_%d%.2d%.2d.nc' %(forecastDate.year, forecastDate.month, forecastDate.day,ens+1,forecastDate.year, forecastDate.month, forecastDate.day)
     data = readGrads(fileName, "prec", str(1), lon=[-179.5, 179.5])
-    createNetCDF(ncFile, varNames, ["mm","mm","mm","mm","mm","mm","mm","mm","mm","mm","mm","W/m^2","W/m^2","W/m^2", "C", "mm","cm","mm"], latitudes=data.latitudes, longitudes=data.longitudes, loop=True)
+    createNetCDF(ncFile, varNames, ["mm","mm","mm","mm","mm","mm","mm","C", "mm","cm"], latitudes=data.latitudes, longitudes=data.longitudes, loop=True)
   
     for i in range(d):
       print i
