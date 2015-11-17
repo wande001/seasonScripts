@@ -44,8 +44,8 @@ startDays = np.tile(["01","16"],24)
 endDays = np.tile(["15","31","15","28","15","31","15","30","15","31","15","30","15","31","15","31","15","30","15","31","15","30","15","31"],2)
 inputMonth = np.tile(np.repeat(["01","02","03","04","05","06","07","08","09","10","11","12"],2),2)
 inputYear = np.repeat(["2010","2011"],24)
-varNames = ["correlation","signif", "bias","NSE", "RMSE","CRPS"]
-varUnits = ["-","-","m3/s","-","m3/s","m3/s"]
+varNames = ["correlation","signif", "bias","NSE", "RMSE","CRPS", "NCRPS"]
+varUnits = ["-","-","m3/s","-","m3/s","m3/s","-"]
 MV = -999.
 createNetCDF(ncOutputFile, varNames, varUnits, np.arange(-89.5,90,1.), np.arange(-179.5,180,1.), loop=True)
 posCount = 0
@@ -73,7 +73,8 @@ for event in range(0,end,step):
         NSmap = np.zeros((180,360))-999.
         RMSEmap = np.zeros((180,360))-999.
         CRPSmap = np.zeros((180,360))-999.
-        
+        NCRPSmap = np.zeros((180,360))-999.
+
         for i in range(180):
           print i
           for j in range(360):
@@ -95,12 +96,17 @@ for event in range(0,end,step):
                 crpsOut = crps(dataPGF[:,i,j], NMME[:,:,i,j])
               except:
                 crpsOut = -999.
+              try:
+                ncrpsOut = crps(normalize(dataPGF[:,i,j]), normalize(NMME[:,:,i,j]))
+              except:
+                ncrpsOut = -999.
               corMap[i,j] = out[0]
               signMap[i,j] = out[1]
               biasMap[i,j] = np.mean(spaceNMME[:,i,j]) - np.mean(spacePGF[:,i,j])
               NSmap[i,j] = nsOut
               RMSEmap[i,j] = rmseOut
               CRPSmap[i,j] = crpsOut
+              NCRPSmap[i,j] = ncrpsOut
         
         data2NetCDF(ncOutputFile, "correlation", corMap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile, "signif", signMap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
@@ -108,6 +114,7 @@ for event in range(0,end,step):
         data2NetCDF(ncOutputFile, "NSE", NSmap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile, "RMSE", RMSEmap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile, "CRPS", CRPSmap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
+        data2NetCDF(ncOutputFile, "NCRPS", NCRPSmap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
     posCount += 1
     filecache = None
 
