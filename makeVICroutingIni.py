@@ -92,8 +92,8 @@ def checkForcingFiles(path, model, precName, tempName, startTime, endTime):
 beginYear = 1981
 endYear = 2011
 forcingInput = "/tigress/nwanders/Scripts/Seasonal/"
-modelS = ["CCSM"] #["CanCM3","CanCM4", "FLOR"]
-precVarNameS = ["prec"] #["prlr","prlr","pr"]
+modelS = ["CanCM3","CanCM4", "FLOR"]
+precVarNameS = ["prlr","prlr","pr"]
 tempVarName = "tas"
 refInput = "/tigress/nwanders/Scripts/Seasonal/refData/"
 refModelS = ["PGF"] #["PGF", "CFS"]
@@ -165,7 +165,7 @@ for m in range(len(modelS)):
               iniFile[i] = iniFile[i][0:startPath] + stateDir + iniFile[i][mapPath+8:]
 
 
-          out = open("/tigress/nwanders/Scripts/hydroSeasonal/config/setup_"+model+"_"+refModel+"_"+timeToStr(startTime)+".ini", "w")
+          out = open("/tigress/nwanders/Scripts/hydroSeasonal/config/setup_VIC_"+model+"_"+refModel+"_"+timeToStr(startTime)+".ini", "w")
           out.writelines(iniFile)
           out.close()
     
