@@ -96,8 +96,9 @@ for event in range(0,end,step):
     
     for space in range(1):
         print space
-        spaceNMME = ensembleMean(NMME, ensDimension = 1)
-        spacePGF = aggregateSpace(dataPGF, extent=space)
+        ensNMME = ensembleMean(NMME, ensDimension = 1)
+        spaceNMME = ensNMME - np.mean(ensNMME, axis=0)
+        spacePGF = dataPGF - np.mean(dataPGF, axis=0)
         
         corMap = np.zeros((360,720))-999.
         signMap = np.zeros((360,720))-999.
