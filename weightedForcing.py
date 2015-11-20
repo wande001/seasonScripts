@@ -20,6 +20,8 @@ ga = grads.GrADS(Bin=grads_exe,Window=False,Echo=False)
 MV = 1e20
 smallNumber = 1E-39
 
+month = int(sys.argv[1])
+
 def returnForecast(dateInput, varName, doy):
   outPut = np.zeros((3, 180, 360))
   modTel = 0
@@ -249,7 +251,6 @@ varNames = ["prec","tas", "prec_var", "tas_var"]
 modelS = ["CanCM3", "CanCM4", "FLOR"]
 
 for year in range(1981,2013):
-  for month in range(1,2):
     d = 0
     forecastDate = datetime.datetime(year, month, 1)
     endTime = datetime.datetime(year+1, month, 1) - datetime.timedelta(days=d)
