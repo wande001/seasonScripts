@@ -619,3 +619,17 @@ def crps(obs, pred):
   out = np.sum(((pcdf-ocdf)**2)*(vals[1]-vals[0]))/len(obs)
   return out
 
+def brier(obs, pred, quant=90):
+  obsSel = np.isnan(obs) == False
+  modSel = np.isnan(pred[:,0]) == False
+  sel = obsSel & modSel
+  pred = pred[sel,:]
+  obs = obs[sel]
+  thresValObs = np.percentile(obs, quant)
+  thresValPred = np.percentile(pred, quant)
+  if quant >= 50.:
+    out = np.mean(((obs > thresValObs) - np.mean(pred > thresValPred, axis=1))**2)
+  if quant < 50.:
+    out = np.mean(((obs < thresValObs) - np.mean(pred < thresValPred, axis=1))**2)
+  return out
+
