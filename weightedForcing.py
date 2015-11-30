@@ -248,15 +248,16 @@ varNames = ["prec","tas", "prec_var", "tas_var"]
 
 modelS = ["CanCM3", "CanCM4", "FLOR"]
 
-for year in range(1981,2013):
+for year in range(1981,1982):
   for month in range(1,2):
     d = 0
     forecastDate = datetime.datetime(year, month, 1)
     endTime = datetime.datetime(year+1, month, 1) - datetime.timedelta(days=d)
+    endTime = datetime.datetime(year, month, 16)
     day = forecastDate + datetime.timedelta(days=d)
     subTel = 0
     ncFile = '/tigress/nwanders/Scripts/Seasonal/Weighted/%d%.2d%.2d_forecasts_CanCM3_CanCM4_FLOR.nc' %(forecastDate.year, forecastDate.month, forecastDate.day)
-    createNetCDF(ncFile, varNames, ["mm","C", "mm","C"], latitudes=np.arange(89.5,-90,-1), longitudes=np.arange(-179.5,180,1), loop=True)
+    #createNetCDF(ncFile, varNames, ["mm","C", "mm","C"], latitudes=np.arange(89.5,-90,-1), longitudes=np.arange(-179.5,180,1), loop=True)
     weightFilePrec = '/tigress/nwanders/Scripts/Seasonal/resultsNetCDF/NNLS_weights_month_%d_var_prec.nc4' %(month)
     weightFileTemp = '/tigress/nwanders/Scripts/Seasonal/resultsNetCDF/NNLS_weights_month_%d_var_tas.nc4' %(month)
     while endTime > day:
@@ -307,15 +308,19 @@ for year in range(1981,2013):
           print d-dayCount+i
           out = precNew[i,:,:]
           out[np.isnan(out)] = refLevelPrec[np.isnan(out)]
-          data2NetCDF(ncFile, varNames[0], precNew[i,:,:], forecastDate+datetime.timedelta(days=d-dayCount+i), posCnt = d-dayCount+i)
-          data2NetCDF(ncFile, varNames[2], varPrec, forecastDate+datetime.timedelta(days=d-dayCount+i), posCnt = d-dayCount+i)
-          out = tempNew[i,:,:]
-          out[np.isnan(out)] = refLevelTemp[np.isnan(out)]
-          data2NetCDF(ncFile, varNames[1], tempNew[i,:,:], forecastDate+datetime.timedelta(days=d-dayCount+i), posCnt = d-dayCount+i)
-          data2NetCDF(ncFile, varNames[3], varTemp, forecastDate+datetime.timedelta(days=d-dayCount+i), posCnt = d-dayCount+i)
+          #data2NetCDF(ncFile, varNames[0], precNew[i,:,:], forecastDate+datetime.timedelta(days=d-dayCount+i), posCnt = d-dayCount+i)
+          #data2NetCDF(ncFile, varNames[2], varPrec, forecastDate+datetime.timedelta(days=d-dayCount+i), posCnt = d-dayCount+i)
+          #out = tempNew[i,:,:]
+          #out[np.isnan(out)] = refLevelTemp[np.isnan(out)]
+          #data2NetCDF(ncFile, varNames[1], tempNew[i,:,:], forecastDate+datetime.timedelta(days=d-dayCount+i), posCnt = d-dayCount+i)
+          #data2NetCDF(ncFile, varNames[3], varTemp, forecastDate+datetime.timedelta(days=d-dayCount+i), posCnt = d-dayCount+i)
       print time.strftime("%H:%M:%S")
       d += 1
       dayCount += 1
       day = forecastDate + datetime.timedelta(days=d)
       #Close the outgoing file
 
+test1 = readNC("/tigress/nwanders/Scripts/Seasonal/Weighted/19810101_forecasts_CanCM3_CanCM4_FLOR.nc", "tas", "all")
+plotMatrix(np.sum(test1,axis=0)-np.sum(test2, axis=0)*1000.)
+
+test2 = readNC("/tigress/nwanders/Scripts/hydroSeasonal/seasonScripts/temp.nc", "temp", "all")
