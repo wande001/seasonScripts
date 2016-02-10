@@ -111,6 +111,13 @@ for m in range(len(modelS)):
     print r
     refModel = refModelS[r]
     for year in range(beginYear,endYear+1):
+      job = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/"+model+"_"+refModel+"_"+str(year)+".sh", "w")
+      job.writelines("#!/bin/bash\n")
+      job.writelines("#SBATCH -n 1   # node count\n")
+      job.writelines("#SBATCH -t 23:59:59\n")
+      job.writelines("#SBATCH --mail-type=fail\n")
+      job.writelines("#SBATCH --mail-user=nwanders@princeton.edu\n")
+
       for month in range(1,13):
         day = 1
         stateTime = timeToStr(datetime.datetime(year, month, day) - datetime.timedelta(days=1))
@@ -169,16 +176,10 @@ for m in range(len(modelS)):
           out.writelines(iniFile)
           out.close()
     
-          job = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/"+model+"_"+refModel+"_"+timeToStr(startTime)+".sh", "w")
-          job.writelines("#!/bin/bash\n")
-          job.writelines("#SBATCH -n 1   # node count\n")
-          job.writelines("#SBATCH -t 23:59:59\n")
-          job.writelines("#SBATCH --mail-type=fail\n")
-          job.writelines("#SBATCH --mail-user=nwanders@princeton.edu\n")
           job.writelines("cd /tigress/nwanders/Scripts/hydroSeasonal/\n")
-          job.writelines("python /tigress/nwanders/Scripts/PCR-GLOBWB/model/seasonal_runner.py /tigress/nwanders/Scripts/hydroSeasonal/config/setup_VIC_"+model+"_"+refModel+"_"+timeToStr(startTime)+".ini")
-          job.close()
+          job.writelines("python /tigress/nwanders/Scripts/PCR-GLOBWB/model/seasonal_runner.py /tigress/nwanders/Scripts/hydroSeasonal/config/setup_VIC_"+model+"_"+refModel+"_"+timeToStr(startTime)+".ini\n")
     
-          master.writelines("sbatch /tigress/nwanders/Scripts/hydroSeasonal/jobs/"+model+"_"+refModel+"_"+timeToStr(startTime)+".sh\n")
+      master.writelines("sbatch /tigress/nwanders/Scripts/hydroSeasonal/jobs/"+model+"_"+refModel+"_"+str(year)+".sh\n")
+      job.close()
 
 master.close()

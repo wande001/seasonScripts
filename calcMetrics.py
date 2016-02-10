@@ -49,6 +49,14 @@ if model == "CCSM":
     dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/CCSM/PCRGLOBWB/"+ref+"/"
     ensNr = 10
 
+if model == "Weighted":
+    dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/Weighted/PCRGLOBWB/"+ref+"/"
+    ensNr = 9
+
+if model == "WeightedEqual":
+    dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/WeightedEqual/PCRGLOBWB/"+ref+"/"
+    ensNr = 9
+
 if ref == "PGF":
     if varName == "discharge":
         ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/netcdf/discharge_seasoAvg_output.nc"

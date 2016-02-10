@@ -408,7 +408,8 @@ dims['maxlat'] = dims['minlat'] + dims['res']*(dims['nlat']-1)
 dims['maxlon'] = dims['minlon'] + dims['res']*(dims['nlon']-1)
 
 totEns = 10
-randomYear = np.random.choice(np.arange(1981,2013), totEns, replace=False)
+year = startTime.year
+randomYear = np.random.choice(np.concatenate((np.arange(1981,year),np.arange(year+1,2013))), totEns, replace=False)
 
 for ens in range(totEns):
   forecastDate = startTime
@@ -418,12 +419,16 @@ for ens in range(totEns):
   fp = open(forcing_file,'wb')
   d = 0
   day = forecastDate + datetime.timedelta(days=d)
+  randomDate = datetime.datetime(randomYear[ens],month, 1)
+  randomDay = randomDate + datetime.timedelta(days=d)
   while endTime >= day:
     if day.day == 1:
       windNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/wind_clim_PGF.nc","wind", DOY=day.month-1)
     try:
-      precNC = readNCforcing("/tigress/nwanders/Scripts/Seasonal/refData/prec_PGF_PCR.nc4","prec", dateInput=datetime.datetime(randomYear[ens], day.month, day.day), endDay = "None")
-      tempNC = readNCforcing("/tigress/nwanders/Scripts/Seasonal/refData/tas_PGF_PCR.nc4","tas", dateInput=datetime.datetime(randomYear[ens], day.month, day.day), endDay = "None")
+      precNC = readNCforcing("/tigress/nwanders/Scripts/Seasonal/refData/prec_PGF_PCR.nc4","prec", dateInput=randomDay, endDay = "None")
+      tempNC = readNCforcing("/tigress/nwanders/Scripts/Seasonal/refData/tas_PGF_PCR.nc4","tas", dateInput=randomDay, endDay = "None")
+      print randomDay
+      print day
     except:
       print "Leap year"
     prec = np.zeros((180,360), dtype=np.float32)
@@ -441,6 +446,7 @@ for ens in range(totEns):
     wind.tofile(fp)
     d += 1
     day = forecastDate + datetime.timedelta(days=d)
+    randomDay = randomDate + datetime.timedelta(days=d)
   #Close the outgoing file
   fp.close()
   
@@ -452,7 +458,7 @@ for ens in range(totEns):
   os.system(VIC_global + ' -g '+settingsFile+' >& /tigress/nwanders/Scripts/hydroSeasonal/EPS/VIC/'+refForcing+'/logFiles/VIC_'+model+'%d%.2d_%d.txt' %(forecastDate.year, forecastDate.month, ens+1))
   print time.strftime("%H:%M:%S")
   
-  varNames = ["prec","evap", "runoff", "baseflow", "wdew", "sm1", "sm2", "sm3", "evap_canop", "evap_veg", "evap_bare", "net_short", "net_long", "r_net", "surf_temp", "swq", "snow_depth", "snow_canop"]
+  varNames = ["prec","evap", "runoff", "baseflow", "sm1", "sm2", "sm3", "surf_temp", "swq", "snow_depth"]
   fileName = '/tigress/nwanders/Scripts/hydroSeasonal/EPS/VIC/'+refForcing+'/%d-%.2d-%.2d/resultRAW/output_grid_%d%.2d%.2d00.ctl' %(forecastDate.year, forecastDate.month, forecastDate.day, forecastDate.year, forecastDate.month, forecastDate.day)
   try:
     os.mkdir('/tigress/nwanders/Scripts/hydroSeasonal/EPS/VIC/'+refForcing+'/%d-%.2d-%.2d/%d' %(forecastDate.year, forecastDate.month, forecastDate.day,ens+1))
@@ -460,7 +466,7 @@ for ens in range(totEns):
     foo = 0
   ncFile = '/tigress/nwanders/Scripts/hydroSeasonal/EPS/VIC/'+refForcing+'/%d-%.2d-%.2d/%d/output_%d%.2d%.2d.nc' %(forecastDate.year, forecastDate.month, forecastDate.day,ens+1,forecastDate.year, forecastDate.month, forecastDate.day)
   data = readGrads(fileName, "prec", str(1), lon=[-179.5, 179.5])
-  createNetCDF(ncFile, varNames, ["mm","mm","mm","mm","mm","mm","mm","mm","mm","mm","mm","W/m^2","W/m^2","W/m^2", "C", "mm","cm","mm"], latitudes=data.latitudes, longitudes=data.longitudes, loop=True)
+  createNetCDF(ncFile, varNames, ["mm","mm","mm","mm","mm","mm","mm","C", "mm","cm"], latitudes=data.latitudes, longitudes=data.longitudes, loop=True)
   
   for i in range(d):
     print i

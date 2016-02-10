@@ -78,23 +78,16 @@ for m in range(len(modelS)):
     print r
     refModel = refModelS[r]
     for year in range(beginYear,endYear+1):
-      job = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/EPS_VIC_"+refModel+"_"+str(year)+".sh", "w")
-      job.writelines("#!/bin/bash\n")
-      job.writelines("#SBATCH -n 1   # node count\n")
-      job.writelines("#SBATCH -t 23:59:59\n")
-      job.writelines("#SBATCH --mail-type=fail\n")
-      job.writelines("#SBATCH --mail-user=nwanders@princeton.edu\n")
-      job.writelines("cd /tigress/nwanders/Scripts/hydroSeasonal/\n")
       for month in range(1,13):
         day = 1
         stateTime = timeToStr(datetime.datetime(year, month, day) - datetime.timedelta(days=1))
         startTime = datetime.datetime(year, month, day)
         endTime = datetime.datetime(year+1, month, day) - datetime.timedelta(days=1)
 
-        outputDir = "/tigress/nwanders/Scripts/hydroSeasonal/EPS/VIC/"+refModel+"/"+timeToStr(startTime)
-        stateDir = "/tigress/nwanders/Scripts/hydroSeasonal/"+refModel+"/VIC/states/"
+        outputDir = "/tigress/nwanders/Scripts/hydroSeasonal/EPS/PCRGLOBWB/"+refModel+"/"+timeToStr(startTime)
+        stateDir = "/tigress/nwanders/Scripts/hydroSeasonal/"+refModel+"/states/"
 
-        con = open("/tigress/nwanders/Scripts/hydroSeasonal/VIC_Original.ini")
+        con = open("/tigress/nwanders/Scripts/hydroSeasonal/setup_Original.ini")
         iniFile = con.readlines()
         con.close()
 
@@ -134,19 +127,24 @@ for m in range(len(modelS)):
             iniFile[i] = 'temperatureReferenceCDF = '+pctlInput+refModel+"_"+tempRefVarName+'_pctl.nc4'+'\n'
           if iniFile[i][0:9] == 'nrSamples' and model == "FLOR":
             iniFile[i] = 'nrSamples = 12'+'\n'
-          if iniFile[i][0:9] == 'VICoutput':
-              iniFile[i] = 'VICoutput = /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/output_1972_2014.nc\n'
           if mapPath > -1:
             iniFile[i] = iniFile[i][0:startPath] + stateDir + iniFile[i][mapPath+8:]
 
 
-        out = open("/tigress/nwanders/Scripts/hydroSeasonal/config/setup_EPS_VIC_"+refModel+"_"+timeToStr(startTime)+".ini", "w")
+        out = open("/tigress/nwanders/Scripts/hydroSeasonal/config/setup_EPS_"+refModel+"_"+timeToStr(startTime)+".ini", "w")
         out.writelines(iniFile)
         out.close()
+
+        job = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/EPS_"+refModel+"_"+str(year)+"-"+str(month)+".sh", "w")
+        job.writelines("#!/bin/bash\n")
+        job.writelines("#SBATCH -n 1   # node count\n")
+        job.writelines("#SBATCH -t 23:59:59\n")
+        job.writelines("#SBATCH --mail-type=fail\n")
+        job.writelines("#SBATCH --mail-user=nwanders@princeton.edu\n")
+        job.writelines("cd /tigress/nwanders/Scripts/hydroSeasonal/\n")
+        job.writelines("python /tigress/nwanders/Scripts/PCR-GLOBWB/model/seasonal_runner.py /tigress/nwanders/Scripts/hydroSeasonal/config/setup_EPS_"+refModel+"_"+timeToStr(startTime)+".ini\n")
+        job.close()
     
-        job.writelines("python /tigress/nwanders/Scripts/PCR-GLOBWB/model/seasonal_runner.py /tigress/nwanders/Scripts/hydroSeasonal/config/setup_EPS_VIC_"+refModel+"_"+timeToStr(startTime)+".ini\n")
-      job.close()
-    
-      master.writelines("sbatch /tigress/nwanders/Scripts/hydroSeasonal/jobs/EPS_VIC_"+refModel+"_"+str(year)+".sh\n")
+        master.writelines("sbatch /tigress/nwanders/Scripts/hydroSeasonal/jobs/EPS_"+refModel+"_"+str(year)+"-"+str(month)+".sh\n")
 
 master.close()

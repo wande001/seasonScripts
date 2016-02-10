@@ -20,9 +20,12 @@ ga = grads.GrADS(Bin=grads_exe,Window=False,Echo=False)
 MV = 1e20
 smallNumber = 1E-39
 
-def returnForecast(dateInput, varName, doy):
-  outPut = np.zeros((3, 180, 360))
+month = int(sys.argv[1])
+
+def returnForecast(dateInput, varName, doy, date):
+  outPut = np.zeros((4, 180, 360))
   modTel = 0
+  PGFvarName = varName
   for model in ["CanCM3", "CanCM4", "FLOR"]:
     if model == "CanCM3":
       dirLoc = "/tigress/nwanders/Scripts/Seasonal/CanCM3/"
@@ -61,6 +64,11 @@ def returnForecast(dateInput, varName, doy):
       out[ens,:,:] = readNC(ncFileName(model, varName, dateInput, ensNumber = ens+1),varName, DOY=doy) * factor
     outPut[modTel,:,:] = np.mean(out,axis=0)
     modTel += 1
+  if PGFvarName == "prec":
+    out = readNCPGF("/tigress/nwanders/Scripts/Seasonal/refData/prec_PGF_PCR.nc4",PGFvarName, dateInput=date, model = "PGF", endDay = "None")
+  if PGFvarName == "tas":
+    out = readNCPGF("/tigress/nwanders/Scripts/Seasonal/refData/tas_PGF_PCR.nc4",PGFvarName, dateInput=date, model = "PGF", endDay = "None")  
+  outPut[modTel,:,:] = out
   return(outPut)
 
 
@@ -210,6 +218,94 @@ def readNC(ncFile,varName, DOY=1):
     
     return(outputData)
 
+def readNCPGF(ncFile,varName, dateInput, latPoint = None, lonPoint = None, endDay = None, useDoy = None, LatitudeLongitude = False, specificFillValue = None, startDate = None, model = "NMME"):
+    
+    # Get netCDF file and variable name:
+    f = nc.Dataset(ncFile)
+    print "New: ", ncFile
+    
+    #print ncFile
+    #f = nc.Dataset(ncFile)  
+    varName = str(varName)
+    
+    if LatitudeLongitude == True:
+        try:
+            f.variables['lat'] = f.variables['latitude']
+            f.variables['lon'] = f.variables['longitude']
+        except:
+            pass
+    if model == "CanCM3":
+        orgDate = datetime.datetime(1850,1,1)+datetime.timedelta(days=leapCount(dateInput))
+        try:
+            orgDateEnd = datetime.datetime(1850,1,1)+datetime.timedelta(days=leapCount(endDay))
+        except:
+            orgDateEnd = foo
+    if model == "CanCM4":
+        orgDate = datetime.datetime(1850,1,1)+datetime.timedelta(days=leapCount(dateInput))
+        try:
+            orgDateEnd = datetime.datetime(1850,1,1)+datetime.timedelta(days=leapCount(endDay))
+        except:
+            orgDateEnd = foo
+    if model == "PGF":
+        orgDate = datetime.datetime(1901,1,1)
+        orgDateEnd = orgDate
+        startDay =  datetime.datetime(1901,1,1)
+    if model == "Weighted" or model == "WeightedEqual":
+        orgDate = datetime.datetime(1901,1,1)
+        orgDateEnd = orgDate
+    if model == "CFS":
+        orgDate = datetime.datetime(1901,1,1)
+        orgDateEnd = orgDate
+    if model == "FLOR":
+        if startDate == None:
+            orgDate = datetime.datetime.strptime(str(dateInput),'%Y-%m-%d')
+        else:
+            orgDate = datetime.datetime.strptime(str(startDate),'%Y-%m-%d')
+        orgDateEnd = orgDate
+    if model == "CCSM":
+        if startDate == None:
+            orgDate = datetime.datetime.strptime(str(dateInput),'%Y-%m-%d')
+        else:
+            orgDate = datetime.datetime.strptime(str(startDate),'%Y-%m-%d')
+        orgDateEnd = orgDate
+    date = dateInput
+    if useDoy == "Yes": 
+        idx = dateInput - 1
+    elif endDay != "None":
+        if isinstance(date, str) == True and isinstance(endDay, str) == True:
+            startDay = datetime.datetime.strptime(str(date),'%Y-%m-%d')
+            lastDay = datetime.datetime.strptime(str(endDay),'%Y-%m-%d')
+        dateDif = datetime.datetime(startDay.year,startDay.month,startDay.day) - orgDate
+        deltaDays = datetime.datetime(lastDay.year,lastDay.month,lastDay.day) - orgDateEnd + datetime.timedelta(days=1)
+        # time index (in the netCDF file)
+        nctime = f.variables['time']  # A netCDF time variable object.
+        if model == "FLOR" or model == "CCSM":
+            #print int(np.where(nctime[:] == int(dateDif.days)+0.5)[0])
+            #print dateDif.days
+            #print deltaDays.days
+            #print nctime[:]
+            #print orgDateEnd
+            #print orgDate
+            #print int(np.where(nctime[:] == int(deltaDays.days)-0.5)[0])
+            print np.minimum(int(deltaDays.days)-0.5, np.max(nctime[:]))
+            idx = range(int(np.where(nctime[:] == int(dateDif.days)+0.5)[0]), int(np.where(nctime[:] == np.minimum(int(deltaDays.days)-0.5, np.max(nctime[:])))[0])+1)
+        else:
+            #print dateDif.days
+            #print deltaDays.days
+            idx = range(int(np.where(nctime[:] == int(dateDif.days))[0]), int(np.where(nctime[:] == int(deltaDays.days)-1)[0])+1)
+    else:
+        if isinstance(date, str) == True:
+	  date = datetime.datetime.strptime(str(date),'%Y-%m-%d') 
+        dateDif = datetime.datetime(date.year,date.month,date.day) - orgDate
+        # time index (in the netCDF file)
+        nctime = f.variables['time']  # A netCDF time variable object.
+        idx = int(np.where(nctime[:] == int(dateDif.days))[0])
+    outputData = f.variables[varName][idx,:,:]       # still original data
+    
+    f.close()
+    
+    return(outputData)
+
 def readNCMatching(ncFile,varName, DOY=1):
     
     # Get netCDF file and variable name:
@@ -263,8 +359,8 @@ for year in range(1981,1982):
     while endTime > day:
       print day
       if day.day == 1 or day.day == 16:
-        precNC = np.zeros((16,3,180,360))
-        tempNC = np.zeros((16,3, 180,360))
+        precNC = np.zeros((16,4,180,360))
+        tempNC = np.zeros((16,4, 180,360))
         dayCount = 0
         weightsPrec = np.zeros((3,180,360))
         weightsPrec[0,:,:] = readNC(weightFilePrec, "CanCM3", subTel)
@@ -286,15 +382,16 @@ for year in range(1981,1982):
         refLevelTemp = readNC(weightFileTemp, "PGFref", subTel)
         subTel += 1
       try:
-        precNC[dayCount,:,:,:] = returnForecast(forecastDate, "prec", d)
-        tempNC[dayCount,:,:,:] = returnForecast(forecastDate, "tas", d)
+        precNC[dayCount,:,:,:] = returnForecast(forecastDate, "prec", d, datetime.datetime(year,month,1)+datetime.timedelta(d))
+        tempNC[dayCount,:,:,:] = returnForecast(forecastDate, "tas", d, datetime.datetime(year,month,1)+datetime.timedelta(d))
       except:
         print "Leap year"
       if  (day + datetime.timedelta(days=1)).day == 1 or (day + datetime.timedelta(days=1)).day == 16:
+	print "Post"
         precEns = np.mean(precNC[0:(dayCount+1),:,:,:], axis=0)
         tempEns = np.mean(tempNC[0:(dayCount+1),:,:,:], axis=0)
-        precAnomaly = np.sum((precEns - refPrec)*weightsPrec, axis=0)
-        tempAnomaly = np.sum((tempEns - refTemp)*weightsTemp, axis=0)
+        precAnomaly = np.sum((precEns[0:3,:,:] - refPrec)*weightsPrec, axis=0)
+        tempAnomaly = np.sum((tempEns[0:3,:,:] - refTemp)*weightsTemp, axis=0)
         precNew = np.minimum(np.maximum(np.sum(((precNC[0:(dayCount+1),:,:,:]/np.sum(precNC[0:(dayCount+1),:,:,:], axis=0))*(weightsPrec/np.sum(weightsPrec, axis=0))) * (precAnomaly + refLevelPrec), axis=1) * (dayCount+1),0.0),100.)
         tempNew = np.maximum(np.sum((tempNC[0:(dayCount+1),:,:,:]-np.mean(tempNC[0:(dayCount+1),:,:,:], axis=0))*(weightsTemp/np.sum(weightsTemp, axis=0)), axis=1) + tempAnomaly + refLevelTemp, np.min(refLevelTemp))
         varPrec = np.zeros((180,360))
