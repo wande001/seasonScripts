@@ -60,6 +60,64 @@ def readNC(ncFile,varName, dateInput, latPoint = None, lonPoint = None, endDay =
     
     return(outputData)
 
+def readNCstatistic(ncFile,varName, dateInput, latPoint = None, lonPoint = None, endDay = None, useDoy = None, LatitudeLongitude = False, specificFillValue = None, model = "NMME"):
+
+    f = nc.Dataset(ncFile)
+    print "New: ", ncFile
+    # Get netCDF file and variable name:
+    #f = nc.Dataset(ncFile)
+    #print "New: ", ncFile
+
+    #print ncFile
+    #f = nc.Dataset(ncFile)  
+    varName = str(varName)
+
+    if LatitudeLongitude == True:
+        try:
+            f.variables['lat'] = f.variables['latitude']
+            f.variables['lon'] = f.variables['longitude']
+        except:
+            pass
+    orgDate = datetime.datetime(1901,1,1)
+    orgDateEnd = orgDate
+    date = dateInput
+    if useDoy == "Yes":
+        idx = dateInput - 1
+    elif endDay != None:
+        if isinstance(date, str) == True and isinstance(endDay, str) == True:
+            startDay = datetime.datetime.strptime(str(date),'%Y-%m-%d')
+            lastDay = datetime.datetime.strptime(str(endDay),'%Y-%m-%d')
+        dateDif = datetime.datetime(startDay.year,startDay.month,startDay.day) - orgDate
+        deltaDays = datetime.datetime(lastDay.year,lastDay.month,lastDay.day) - orgDateEnd + datetime.timedelta(days=1)
+        # time index (in the netCDF file)
+        nctime = f.variables['time']  # A netCDF time variable object.
+        print int(dateDif.days)
+        print int(deltaDays.days)-1
+        try:
+            idx = range(int(np.where(nctime[:] >= int(dateDif.days))[0][0]), int(np.where(nctime[:] <= int(deltaDays.days)-1)[0][-1])+1)
+        except:
+            idx = []
+    else:
+        if isinstance(date, str) == True:
+            date = datetime.datetime.strptime(str(date),'%Y-%m-%d')
+        dateDif = datetime.datetime(date.year,date.month,date.day) - orgDate
+        # time index (in the netCDF file)
+        nctime = f.variables['time']  # A netCDF time variable object.
+        idx = int(np.where(nctime[:] == int(dateDif.days))[0])
+    if idx == None or idx == []:
+        try:
+            idx = int(np.where(nctime[:] < int(dateDif.days))[0][-1])
+            print "Before option"
+        except:
+            idx = int(np.where(nctime[:] > int(dateDif.days))[0][0])
+            print "After option"
+    print idx
+    outputData = f.variables[varName][idx,:,:]       # still original data
+    outputData[outputData == MV] = np.nan
+    f.close()
+
+    return(outputData)
+
 def createNetCDF(ncFileName, varName, varUnits, latitudes, longitudes,\
                                       longName = None, loop=False):
     
@@ -203,6 +261,13 @@ def returnSeasonalForecast(dateInput, endDay, model, varName, lag, month = 0, en
     if varName == "soilMoistureUp":
       varFile = "satDegUpp_seasoAvg_output.nc"
       varName = "upper_soil_saturation_degree"
+
+    if varName == "reference_potential_evaporation":
+      varFile = "referencePotET_seasoAvg_output.nc"
+
+    if varName == "total_evaporation":
+      varFile = "totalEvaporation_seasoAvg_output.nc"
+
     model = "PGF"
     deltaDay = lagToDateTime(endDay, lag, model).day - lagToDateTime(dateInput, lag, model).day + 1
     deltaYear = lagToDateTime(endDay, lag, model).year - lagToDateTime(dateInput, lag, model).year + 1
@@ -415,6 +480,39 @@ def readForcing(ncFile, varName, dateInput, endDay, lag=0, model="PGF"):
             print lagToDateStr(startDate, lag, model)
             print endDate
             data[lastEntry,:,:] = aggregateTime(readNC(ncFile, varName, lagToDateStr(startDate, lag, model), endDay=endDate, model="PGF"), var=varName)
+            lastEntry += 1
+    return(data)
+
+def readForcingstatistic(ncFile, varName, dateInput, endDay, lag=0, model="PGF"):
+    deltaDay = lagToDateTime(endDay, lag, model).day - lagToDateTime(dateInput, lag, model).day + 1
+    deltaYear = lagToDateTime(endDay, lag, model).year - lagToDateTime(dateInput, lag, model).year + 1
+    data = np.zeros((deltaYear,360,720))
+    print data.shape
+    start = datetime.datetime.strptime(str(dateInput),'%Y-%m-%d')
+    end = datetime.datetime.strptime(str(endDay),'%Y-%m-%d')
+    lastEntry = 0
+    m = start.month
+    d = start.day
+    for y in range(start.year, end.year+1):
+        tempStartDate = datetime.datetime.strptime(str(str(y)+"-"+str(m)+"-"+str(d)),'%Y-%m-%d')
+        zero = ""
+        if len(str(m)) < 2: zero = "0"
+        zeroDay = ""
+        if len(str(start.day)) < 2: zeroDay="0"
+        startDate = str(tempStartDate.year)+"-"+zero+str(tempStartDate.month)+"-"+zeroDay+str(start.day)
+        tempEnd = datetime.datetime.strptime(str(str(y+1)+"-"+str(m)+"-01"),'%Y-%m-%d') - datetime.timedelta (days = 1)
+        print tempStartDate
+        if tempStartDate >= start and tempStartDate < (end - datetime.timedelta (days = 1)):
+            startDateTime = lagToDateTime(startDate, lag, model)
+            endDateTime = lagToDateTime(findMonthEnd(y,end.month,end.day, model), lag, model)
+            addYear = 0
+            if endDateTime.year < startDateTime.year: addYear = 1
+            endDateTime = lagToDateTime(findMonthEnd(y+addYear,end.month,end.day, model), lag, model)
+            if endDateTime.month < startDateTime.month and endDateTime.year == startDateTime.year: addYear = 1
+            endDate = lagToDateStr(findMonthEnd(y+addYear, end.month, end.day, model), lag, model)
+            print lagToDateStr(startDate, lag, model)
+            print endDate
+            data[lastEntry,:,:] = aggregateTime(readNCstatistic(ncFile, varName, lagToDateStr(startDate, lag, model), endDay=endDate, model="PGF"), var=varName)
             lastEntry += 1
     return(data)
 
