@@ -367,7 +367,7 @@ def Prepare_VIC_Global_Parameter_File(idate,fdate,dims, model, refForcing):
  fp.write('VEGLIB          /tigress/nwanders/Scripts/VIC/veglib.dat\n')
  fp.write('GLOBAL_LAI      TRUE      # true if veg param file has monthly LAI\n')
  fp.write('RESULT_DIR      /tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/%d-%.2d-%.2d/resultRAW/\n' %(idate.year, idate.month, idate.day))
- fp.write('INIT_STATE /tigress/nwanders/Scripts/hydroSeasonal/'+refForcing+'/VIC/states/state_%d%.2d%.2d\n' % (idate.year,idate.month, idate.day))
+ fp.write('INIT_STATE /tigress/nwanders/Scripts/hydroSeasonal/'+refForcing+'/VIC/test/states/state_%d%.2d%.2d\n' % (idate.year,idate.month, idate.day))
  fp.write('STATENAME /tigress/nwanders/Scripts/hydroSeasonal/'+model+'/VIC/'+refForcing+'/states/state\n')
  fp.write('STATEYEAR %d \n' % fdate.year)
  fp.write('STATEMONTH %d \n' % fdate.month)
@@ -393,6 +393,10 @@ if model == "FLOR":
   precName = "pr"
 if model == "CCSM":
   precName = "prec"
+if model == "Weighted" or model=="WeightedEqual":
+  totEns = 9
+  precName = "prec"
+
 
 precipitationInputCDF = '/tigress/nwanders/Scripts/Seasonal/resultsNetCDF/'+model+"_"+precName+'_pctl.nc4'
 temperatureInputCDF = '/tigress/nwanders/Scripts/Seasonal/resultsNetCDF/'+model+'_tas_pctl.nc4'
@@ -409,6 +413,7 @@ if checkForcingFiles(model, precName, "tas", startTime, endTime):
     fp = open(forcing_file,'wb')
     d = 0
     day = forecastDate + datetime.timedelta(days=d)
+    DOY = day - datetime.datetime(day.year, 1, 1)
     while endTime >= day:
       print day
       if day.day == 1:
@@ -417,20 +422,42 @@ if checkForcingFiles(model, precName, "tas", startTime, endTime):
         precRefCDF = readNCMatching(precipitationReferenceCDF, "prec", DOY=day.month-1)
         tasRefCDF = readNCMatching(temperatureReferenceCDF, "tas", DOY=day.month-1)
         windNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/wind_clim_PGF.nc","wind", DOY=day.month-1)
+      tmaxNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/tmax_diff_PGF.nc","tmax", DOY=DOY.days)
+      tminNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/tmin_diff_PGF.nc","tmin", DOY=DOY.days)
       try:
-        precNC = readNC(ncFileName(model, precName, forecastDate, ensNumber = ens+1),precName, DOY=d)
-        tempNC = readNC(ncFileName(model, "tas", forecastDate, ensNumber = ens+1),"tas", DOY=d)
+        if model == "Weighted" or model == "WeightedEqual":
+          data = readNC(ncFileName(model, precName, forecastDate, ensNumber = ens+1),precName, DOY=d)
+          dataVar = readNC(ncFileName(model, precName, forecastDate, ensNumber = ens+1),precName+"_var", DOY=d)
+          dataAvg = np.copy(data)
+          data = np.zeros((dataAvg.shape[0], dataAvg.shape[1], 9, 180,360))
+          for n in range(9):
+            data[:,:,n,:,:] = dataAvg[:,:,0,:,:] + scipy.stats.norm.ppf((n+1)/10.)*dataVar**0.5
+          if varName == "prec":
+            precNC = np.maximum(data, 0.0)
+          data = readNC(ncFileName(model, precName, forecastDate, ensNumber = ens+1),"tas", DOY=d)
+          dataVar = readNC(ncFileName(model, precName, forecastDate, ensNumber = ens+1),"tas_var", DOY=d)
+          dataAvg = np.copy(data)
+          tempNC = np.zeros((dataAvg.shape[0], dataAvg.shape[1], 9, 180,360))
+          for n in range(9):
+            tempNC[:,:,n,:,:] = dataAvg[:,:,0,:,:] + scipy.stats.norm.ppf((n+1)/10.)*dataVar**0.5
+        else:
+          precNC = readNC(ncFileName(model, precName, forecastDate, ensNumber = ens+1),precName, DOY=d)
+          tempNC = readNC(ncFileName(model, "tas", forecastDate, ensNumber = ens+1),"tas", DOY=d)
       except:
         print "Leap year"
       precNC = matchCDF(precNC, precInputCDF, precRefCDF, var="prec")
       tempNC = matchCDF(tempNC, tasInputCDF, tasRefCDF, var="tas")
+      tempMaxNC = tempNC + tmaxNC
+      tempMinNC = tempNC - tminNC
       prec = np.zeros((180,360), dtype=np.float32)
       prec[:,0:180] = precNC[::-1,180:360]*1000.
       prec[:,180:360] = precNC[::-1,0:180]*1000.
       tmax = np.zeros((180,360), dtype=np.float32)
-      tmax[:,0:180] = tempNC[::-1,180:360]
-      tmax[:,180:360] = tempNC[::-1,0:180]
-      tmin = np.copy(tmax)
+      tmax[:,0:180] = tempMaxNC[::-1,180:360]
+      tmax[:,180:360] = tempMaxNC[::-1,0:180]
+      tmin = np.zeros((180,360), dtype=np.float32)
+      tmin[:,0:180] = tempMinNC[::-1,180:360]
+      tmin[:,180:360] = tempMinNC[::-1,0:180]
       wind = np.array(windNC, dtype=np.float32)
       #Append to the outgoing file
       prec.tofile(fp)
@@ -439,6 +466,7 @@ if checkForcingFiles(model, precName, "tas", startTime, endTime):
       wind.tofile(fp)
       d += 1
       day = forecastDate + datetime.timedelta(days=d)
+      DOY = day - datetime.datetime(day.year, 1, 1)
     #Close the outgoing file
     fp.close()
   

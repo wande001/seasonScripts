@@ -28,6 +28,13 @@ if varName == "soilMoistureUp":
   varFile = "satDegUpp"
   varOutPutName = "soilMoistureUp"
 
+if varName == "evap":
+  varName_1 = "reference_potential_evaporation"
+  varFile_1 = "referencePotET"
+  varName_2 = "total_evaporation"
+  varFile_2 = "totalEvaporation"
+  varOutPutName = "evapDeficit"
+
 
 if model == "CanCM3":
     dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/CanCM3/PCRGLOBWB/"+ref+"/"
@@ -59,13 +66,16 @@ if model == "WeightedEqual":
 
 if ref == "PGF":
     if varName == "discharge":
-        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/netcdf/discharge_seasoAvg_output.nc"
+        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/PCRGLOBWB/netcdf/1/discharge_seasoAvg_output.nc"
     if varName == "groundwater":
-        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/netcdf/storGroundwater_seasoAvg_output.nc"
+        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/PCRGLOBWB/netcdf/1/storGroundwater_seasoAvg_output.nc"
     if varName == "soilMoistureLow":
-        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/netcdf/satDegLow_seasoAvg_output.nc"
+        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/PCRGLOBWB/netcdf/1/satDegLow_seasoAvg_output.nc"
     if varName == "soilMoistureUp":
-        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/netcdf/satDegUpp_seasoAvg_output.nc"
+        ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/PCRGLOBWB/netcdf/1/satDegUpp_seasoAvg_output.nc"
+    if varName == "evap":
+        ncRef1 = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/PCRGLOBWB/netcdf/1/referencePotET_seasoAvg_output.nc"
+        ncRef2 = "/tigress/nwanders/Scripts/hydroSeasonal/PGF/PCRGLOBWB/netcdf/1/totalEvaporation_seasoAvg_output.nc"
 
 if ref == "CFS":
     if varName == "discharge":
@@ -96,11 +106,20 @@ for event in range(0,end,step):
     print dateInput
     print endDay
     
-    NMME = returnSeasonalForecast(dateInput, endDay, model, varName, lag, dirLoc = dirLoc, ensNr = ensNr)
-    
+    if varName != "evap":
+      NMME = returnSeasonalForecast(dateInput, endDay, model, varName, lag, dirLoc = dirLoc, ensNr = ensNr)
+    else:
+      potEvap = returnSeasonalForecast(dateInput, endDay, model, varName_1, lag, dirLoc = dirLoc, ensNr = ensNr)
+      evap = returnSeasonalForecast(dateInput, endDay, model, varName_2, lag, dirLoc = dirLoc, ensNr = ensNr)
+      NMME = potEvap - evap
     print lagToDateStr(dateInput, lag, model)
     print lagToDateStr(endDay, lag, model)
-    dataPGF = readForcing(ncRef, varName, dateInput, endDay=endDay, lag=lag, model="PGF")
+    if varName != "evap":
+      dataPGF = readForcing(ncRef, varName, dateInput, endDay=endDay, lag=lag, model="PGF")
+    else:
+      potEvapPGF = readForcing(ncRef1, varName_1, dateInput, endDay=endDay, lag=lag, model="PGF")
+      evapPGF = readForcing(ncRef2, varName_2, dateInput, endDay=endDay, lag=lag, model="PGF")
+      dataPGF = potEvapPGF - evapPGF
     
     for space in range(1):
         print space

@@ -4,8 +4,8 @@ import grads
 import numpy as np
 import fileinput
 import netCDF4 as nc
-import pyhdf.SD as sd
-import library_f90
+#import pyhdf.SD as sd
+#import library_f90
 import scipy.stats as ss
 import subprocess
 import dateutil.relativedelta as relativedelta
@@ -30,7 +30,7 @@ def gradstime2datetime(str):
 def readNC(ncFile,varName, DOY=1):
     # Get netCDF file and variable name:
     f = nc.Dataset(ncFile)
-    print "New: ", ncFile
+    #print "New: ", ncFile
     
     #print ncFile
     #f = nc.Dataset(ncFile)  
@@ -47,7 +47,7 @@ def readNC(ncFile,varName, DOY=1):
 
 def Prepare_VIC_Global_Parameter_File(idate,fdate,dims,dataset):
  
- file = '/tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/Global_Parameter.txt'
+ file = '/tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/test/Global_Parameter.txt'
  fp = open(file,'w')
  
  #Write the VIC parameters to file
@@ -87,7 +87,7 @@ def Prepare_VIC_Global_Parameter_File(idate,fdate,dims,dataset):
  fp.write('NOFLUX          FALSE  # false uses const. T at damping depth\n')
  
  # Define (Meteorological) Forcing Files
- fp.write('FORCING1        /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/forcing/forcing_\n')
+ fp.write('FORCING1        /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/test/forcing/forcing_\n')
  fp.write('N_TYPES         4\n')
  fp.write('FORCE_TYPE      PREC    UNSIGNED 10\n')
  fp.write('FORCE_TYPE      TMAX    SIGNED  10\n')
@@ -121,9 +121,9 @@ def Prepare_VIC_Global_Parameter_File(idate,fdate,dims,dataset):
  fp.write('VEGPARAM        /tigress/nwanders/Scripts/VIC/1.0deg/global_lai.txt\n')
  fp.write('VEGLIB          /tigress/nwanders/Scripts/VIC/veglib.dat\n')
  fp.write('GLOBAL_LAI      TRUE      # true if veg param file has monthly LAI\n')
- fp.write('RESULT_DIR      /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/output/\n')
- fp.write('INIT_STATE /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/states/state_%d%.2d%.2d\n' % (idate.year,idate.month, idate.day))
- fp.write('STATENAME /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/states/state\n')
+ fp.write('RESULT_DIR      /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/test/output/\n')
+ fp.write('INIT_STATE /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/test/states/state_%d%.2d%.2d\n' % (idate.year,idate.month, idate.day))
+ fp.write('STATENAME /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/test/states/state\n')
  fp.write('STATEYEAR %d \n' % fdate.year)
  fp.write('STATEMONTH %d \n' % fdate.month)
  fp.write('STATEDAY %d \n' % fdate.day) 
@@ -141,7 +141,7 @@ dims['maxlat'] = dims['minlat'] + dims['res']*(dims['nlat']-1)
 dims['maxlon'] = dims['minlon'] + dims['res']*(dims['nlon']-1)
 
 for year in range(1978,1981):
-  forcing_file = '/tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/forcing/forcing_'+str(year)+'0101'
+  forcing_file = '/tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/test/forcing/forcing_'+str(year)+'0101'
   fp = open(forcing_file,'wb')
   d = 0
   day = datetime.datetime(year, 1,1) + datetime.timedelta(days=d)
@@ -149,11 +149,13 @@ for year in range(1978,1981):
     i = day - datetime.datetime(1948, 1,1)
     m = (year - 1948)*12 + day.month - 1
     precNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/prec_PGF.nc","prec", DOY=i.days)
-    tempNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/tas_PGF.nc","tas", DOY=i.days)-273.15
-    windNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/wind_PGF.nc","wind", DOY=month)
+    #tempNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/tas_PGF.nc","tas", DOY=i.days)-273.15
+    windNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/wind_PGF.nc","wind", DOY=day.month)
+    tmaxNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/tmax_PGF.nc","tmax", DOY=i.days)-273.15
+    tminNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/tmin_PGF.nc","tmin", DOY=i.days)-273.15
     prec = np.array(precNC, dtype=np.float32)
-    tmax = np.array(tempNC, dtype=np.float32)
-    tmin = np.copy(tmax)
+    tmax = np.array(tmaxNC, dtype=np.float32)
+    tmin = np.array(tminNC, dtype=np.float32) 
     wind = np.array(windNC, dtype=np.float32)
     #Append to the outgoing file
     prec.tofile(fp)
@@ -170,24 +172,26 @@ for year in range(1978,1981):
   Prepare_VIC_Global_Parameter_File(datetime.datetime(year, 1,1),datetime.datetime(year+1, 1,1),dims,0)
   
   print time.strftime("%H:%M:%S")
-  os.system(VIC_global + ' -g /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/Global_Parameter.txt >& /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/VIC_log.txt')
+  os.system(VIC_global + ' -g /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/test/Global_Parameter.txt >& /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/test/VIC_log.txt')
   print time.strftime("%H:%M:%S")
 
 for year in range(1981,2015):
   for month in range(1,13):
     startDate = datetime.datetime(year, month,1)
-    forcing_file = '/tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/forcing/forcing_%d%.2d01' %(startDate.year, startDate.month)
+    forcing_file = '/tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/test/forcing/forcing_%d%.2d01' %(startDate.year, startDate.month)
     fp = open(forcing_file,'wb')
     d = 0
     day = datetime.datetime(year, month,1) + datetime.timedelta(days=d)
     while month == day.month:
       i = day - datetime.datetime(1948, 1,1)
       precNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/prec_PGF.nc","prec", DOY=i.days)
-      tempNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/tas_PGF.nc","tas", DOY=i.days)-273.15
-      windNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/wind_PGF.nc","wind", DOY=month)
+      #tempNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/tas_PGF.nc","tas", DOY=i.days)-273.15
+      windNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/wind_PGF.nc","wind", DOY=day.month)
+      tmaxNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/tmax_PGF.nc","tmax", DOY=i.days)-273.15
+      tminNC = readNC("/tigress/nwanders/Scripts/Seasonal/refData/tmin_PGF.nc","tmin", DOY=i.days)-273.15
       prec = np.array(precNC, dtype=np.float32)
-      tmax = np.array(tempNC, dtype=np.float32)
-      tmin = np.copy(tmax)
+      tmax = np.array(tmaxNC, dtype=np.float32)
+      tmin = np.array(tminNC, dtype=np.float32)
       wind = np.array(windNC, dtype=np.float32)
       #Append to the outgoing file
       prec.tofile(fp)
@@ -206,6 +210,6 @@ for year in range(1981,2015):
     else:
       Prepare_VIC_Global_Parameter_File(datetime.datetime(year, month,1),datetime.datetime(year+1, 1,1),dims,0)
     print time.strftime("%H:%M:%S")
-    os.system(VIC_global + ' -g /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/Global_Parameter.txt >& /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/VIC_log.txt')
+    os.system(VIC_global + ' -g /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/test/Global_Parameter.txt >& /tigress/nwanders/Scripts/hydroSeasonal/PGF/VIC/test/VIC_log.txt')
     print time.strftime("%H:%M:%S")
 

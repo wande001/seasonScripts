@@ -58,6 +58,8 @@ def ncFileName(model, varName, startTime, endTime):
     if model == "CCSM":
         modelName = "_day_CCSM4_"
         ncFile = varName+modelName+yearMonth(startTime)+"01_r1i1p1_"+yearMonthDay(startTime)+"-"+yearMonthDay(findMonthEnd(endTime, model))+".nc4"
+    if model == "Weighted" or model=="WeightedEqual":
+        ncFile = yearMonth(startTime)+"01_forecasts_CanCM3_CanCM4_FLOR.nc"
     return(ncFile)
 
 def ncFileNameEns(model, varName, startTime, endTime, ens):
@@ -73,6 +75,8 @@ def ncFileNameEns(model, varName, startTime, endTime, ens):
     if model == "CCSM":
         modelName = "_day_CCSM4_"
         ncFile = varName+modelName+yearMonth(startTime)+"01_r"+str(ens)+"i1p1_"+yearMonthDay(startTime)+"-"+yearMonthDay(findMonthEnd(endTime, model))+".nc4"
+    if model == "Weighted" or model=="WeightedEqual":
+        ncFile = yearMonth(startTime)+"01_forecasts_CanCM3_CanCM4_FLOR.nc"
     return(ncFile)
 
 
@@ -80,6 +84,8 @@ def checkForcingFiles(path, model, precName, tempName, startTime, endTime):
     totEns = 10
     if model == "FLOR":
         totEns = 12
+    if model == "Weighted" or model == "WeightedEqual":
+        totEns = 1
     ens = 0
     fileExist = True
     while ens < totEns and fileExist:
@@ -92,21 +98,23 @@ def checkForcingFiles(path, model, precName, tempName, startTime, endTime):
 beginYear = 1981
 endYear = 2011
 forcingInput = "/tigress/nwanders/Scripts/Seasonal/"
-modelS = ["CCSM"] #["CanCM3","CanCM4", "FLOR"]
-precVarNameS = ["prec"] #["prlr","prlr","pr"]
+modelS = ["CanCM3","CanCM4", "FLOR", "CCSM"]
+precVarNameS = ["prlr","prlr","pr", "prec"]
 tempVarName = "tas"
 refInput = "/tigress/nwanders/Scripts/Seasonal/refData/"
 refModelS = ["PGF"] #["PGF", "CFS"]
 precRefVarName = "prec"
 tempRefVarName = "tas"
-precCorFactor = 1.0
+precCorFactorS = [1.0,1.0,1.0,0.001]
 pctlInput = "/tigress/nwanders/Scripts/Seasonal/resultsNetCDF/"
 
-master = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/master.sh", "w")
+master = open("/tigress/nwanders/Scripts/hydroSeasonal/jobs/PCRGLOBWB_master.sh", "w")
 
 for m in range(len(modelS)):
   model = modelS[m]
   precVarName = precVarNameS[m]
+  precCorFactor = str(precCorFactorS[m])
+  print precCorFactor
   for r in range(len(refModelS)):
     print r
     refModel = refModelS[r]
@@ -119,7 +127,7 @@ for m in range(len(modelS)):
         if checkForcingFiles(forcingInput+model+"/", model, precVarName, tempVarName, startTime, endTime):
 
           outputDir = "/tigress/nwanders/Scripts/hydroSeasonal/"+model+"/PCRGLOBWB/"+refModel+"/"+timeToStr(startTime)
-          stateDir = "/tigress/nwanders/Scripts/hydroSeasonal/"+refModel+"/states/"
+          stateDir = "/tigress/nwanders/Scripts/hydroSeasonal/"+refModel+"/PCRGLOBWB/states/"
 
           con = open("/tigress/nwanders/Scripts/hydroSeasonal/setup_Original.ini")
           iniFile = con.readlines()
@@ -128,7 +136,7 @@ for m in range(len(modelS)):
           for i in range(len(iniFile)):
             mapEnd = iniFile[i].find('31.map')
             mapPath = iniFile[i].find('/states/')
-            startPath = iniFile[i].find('/home/')  
+            startPath = iniFile[i].find('/tigress/')  
             if iniFile[i][0:9] == 'outputDir':
               iniFile[i] = 'outputDir = '+outputDir+'\n'
             if iniFile[i][0:5] == 'model':
@@ -139,6 +147,7 @@ for m in range(len(modelS)):
               iniFile[i] = 'endTime = '+timeToStr(endTime)+'\n'
             if mapEnd > -1:
               iniFile[i] = iniFile[i][0:mapEnd-8] + stateTime + iniFile[i][mapEnd+2:]
+              print iniFile[i]
             if iniFile[i][0:15] == 'precipitationNC':
               iniFile[i] = 'precipitationNC = '+forcingInput+model+"/"+ncFileName(model, precVarName, startTime, endTime)+'\n'
             if iniFile[i][0:13] == 'temperatureNC':
@@ -147,7 +156,7 @@ for m in range(len(modelS)):
               iniFile[i] = 'precipitationVarName = '+precVarName+'\n'
             if iniFile[i][0:18] == 'temperatureVarName':
               iniFile[i] = 'temperatureVarName = '+tempVarName+'\n'
-            if iniFile[i][0:30] == 'precipitationCorrectionFactor':
+            if iniFile[i][0:29] == 'precipitationCorrectionFactor':
               iniFile[i] = 'precipitationCorrectionFactor = '+precCorFactor+'\n'
             if iniFile[i][0:21] == 'precipitationInputCDF':
               iniFile[i] = 'precipitationInputCDF = '+pctlInput+model+"_"+precVarName+'_pctl.nc4'+'\n'
@@ -159,8 +168,18 @@ for m in range(len(modelS)):
               iniFile[i] = 'temperatureReferenceCDF = '+pctlInput+refModel+"_"+tempRefVarName+'_pctl.nc4'+'\n'
             if iniFile[i][0:9] == 'nrSamples' and model == "FLOR":
               iniFile[i] = 'nrSamples = 12'+'\n'
+            if iniFile[i][0:9] == 'nrSamples' and model == "Weighted":
+              iniFile[i] = 'nrSamples = 9'+'\n'
+            if iniFile[i][0:9] == 'nrSamples' and model == "WeightedEqual":
+              iniFile[i] = 'nrSamples = 9'+'\n'
             if mapPath > -1:
+              print iniFile[i][0:startPath]
+              print stateDir
+              #print iniFile[i][startPath:mapEnd-8]
+              #print stateTime
+              print iniFile[i][mapPath+8:]
               iniFile[i] = iniFile[i][0:startPath] + stateDir + iniFile[i][mapPath+8:]
+              print iniFile[i][mapEnd+2:]
 
 
           out = open("/tigress/nwanders/Scripts/hydroSeasonal/config/setup_"+model+"_"+refModel+"_"+timeToStr(startTime)+".ini", "w")

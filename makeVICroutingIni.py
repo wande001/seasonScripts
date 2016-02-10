@@ -58,6 +58,9 @@ def ncFileName(model, varName, startTime, endTime):
     if model == "CCSM":
         modelName = "_day_CCSM4_"
         ncFile = varName+modelName+yearMonth(startTime)+"01_r1i1p1_"+yearMonthDay(startTime)+"-"+yearMonthDay(findMonthEnd(endTime, model))+".nc4"
+    if model == "EPS":
+        modelName = "_day_CCSM4_"
+        ncFile = varName+modelName+yearMonth(startTime)+"01_r1i1p1_"+yearMonthDay(startTime)+"-"+yearMonthDay(findMonthEnd(endTime, model))+".nc4"
     return(ncFile)
 
 def ncFileNameEns(model, varName, startTime, endTime, ens):
@@ -82,7 +85,7 @@ def checkForcingFiles(path, model, precName, tempName, startTime, endTime):
         totEns = 12
     ens = 0
     fileExist = True
-    while ens < totEns and fileExist:
+    while ens < totEns and fileExist and model != "EPS":
         fileExist = os.path.isfile(path+ncFileNameEns(model, precName, startTime, endTime, ens+1)) \
            and os.path.isfile(path+ncFileNameEns(model, tempName, startTime, endTime, ens+1))
         ens += 1
@@ -92,8 +95,8 @@ def checkForcingFiles(path, model, precName, tempName, startTime, endTime):
 beginYear = 1981
 endYear = 2011
 forcingInput = "/tigress/nwanders/Scripts/Seasonal/"
-modelS = ["CanCM3","CanCM4", "FLOR"]
-precVarNameS = ["prlr","prlr","pr"]
+modelS = ["CanCM3","CanCM4", "FLOR", "EPS", "CCSM"]
+precVarNameS = ["prlr","prlr","pr", "pr", "prec"]
 tempVarName = "tas"
 refInput = "/tigress/nwanders/Scripts/Seasonal/refData/"
 refModelS = ["PGF"] #["PGF", "CFS"]
@@ -123,7 +126,7 @@ for m in range(len(modelS)):
         stateTime = timeToStr(datetime.datetime(year, month, day) - datetime.timedelta(days=1))
         startTime = datetime.datetime(year, month, day)
         endTime = datetime.datetime(year+1, month, day) - datetime.timedelta(days=1)
-        if checkForcingFiles(forcingInput+model+"/", model, precVarName, tempVarName, startTime, endTime):
+        if checkForcingFiles(forcingInput+model+"/", model, precVarName, tempVarName, startTime, endTime) or model == "EPS":
 
           outputDir = "/tigress/nwanders/Scripts/hydroSeasonal/"+model+"/VIC/"+refModel+"/"+timeToStr(startTime)
           stateDir = "/tigress/nwanders/Scripts/hydroSeasonal/"+refModel+"/VIC/states/"
