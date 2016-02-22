@@ -160,14 +160,18 @@ for event in range(0,end,step):
       for i in range(21,51):
         industry[i-21,:,:] = f.variables["industryGrossDemand"][i,:,:]
       f.close()
+      irriArea = np.zeros((30,360,720))
+      ncFile = "/tigress/nwanders/Scripts/PCR-GLOBWB/input30min/landSurface/waterDemand/irrigated_areas/irrigationArea30ArcMin.nc"
+      f = nc.Dataset(ncFile)
+      for i in range(21,51):
+        irriArea[i-21,:,:] = f.variables["irrigationArea"][i,:,:]
+      f.close()
       potEvap = returnSeasonalForecast(dateInput, endDay, model, varName_1, lag, dirLoc = dirLoc, ensNr = ensNr) 
       evap = returnSeasonalForecast(dateInput, endDay, model, varName_2, lag, dirLoc = dirLoc, ensNr = ensNr)
-      discharge = ensembleMean(returnSeasonalForecast(dateInput, endDay, model, varName_3, lag, dirLoc = dirLoc, ensNr = ensNr), ensDimension = 1)/multiarea*86400.
-      totalDemand = ensembleMean(potEvap-evap, ensDimension = 1)*multiEfficiency + domestic + industry
+      discharge = ensembleMean(returnSeasonalForecast(dateInput, endDay, model, varName_3, lag, dirLoc = dirLoc, ensNr = ensNr), ensDimension = 1)*86400.
+      totalDemand = ensembleMean(potEvap-evap, ensDimension = 1)*irriArea*multiEfficiency + (domestic + industry)*multiarea
       del(potEvap)
       del(evap)
-      waterScarcity = totalDemand/discharge
-      del(discharge)
       
     print lagToDateStr(dateInput, lag, model)
     print lagToDateStr(endDay, lag, model)
@@ -183,13 +187,11 @@ for event in range(0,end,step):
       totalDemandPGF = (potEvapPGF-evapPGF)*multiEfficiency + domestic + industry
       del(potEvapPGF)
       del(evapPGF)
-      waterScarcityPGF = totalDemandPGF/dischargePGF
-      del(dischargePGF)
     
     for space in range(1):
         print space
-        spaceNMME = waterScarcity
-        spacePGF = waterScarcityPGF
+        spaceNMME = totalDemand
+        spacePGF = totalDemandPGF
         
         corMap = np.zeros((360,720))-np.nan
         signMap = np.zeros((360,720))-np.nan
