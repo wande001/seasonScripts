@@ -2,19 +2,39 @@ from readData import *
 #from plotMatrix import *
 from scipy.stats.stats import spearmanr
 import sys
+import pandas as pd
 
-lag = int(sys.argv[5])
-step = int(sys.argv[2])
-end = int(sys.argv[3])
-month = int(sys.argv[4])
-tempScale = int(sys.argv[1])
-model = sys.argv[6]
-varName = sys.argv[8]
-ref = sys.argv[7]
+
+#lag = int(sys.argv[5])
+#step = int(sys.argv[2])
+#end = int(sys.argv[3])
+#month = int(sys.argv[4])
+#tempScale = int(sys.argv[1])
+#model = sys.argv[6]
+#varName = sys.argv[8]
+#ref = sys.argv[7]
+
+lag = int(0)
+step = int(1)
+end = int(1)
+month = int(1)
+tempScale = int(0)
+model = "ESP"
+varName = "scarcity"
+ref = "PGF"
 
 ncFile = "/tigress/nwanders/Scripts/PCR-GLOBWB/input30min/global/majorCatchments.nc"
 f = nc.Dataset(ncFile)
 catchments = f.variables["Band1"][::-1,:]
+f.close()
+catchFlat = np.array(catchments).reshape(360*720)
+multiCatch = np.zeros((30,360,720))
+for i in range(30):
+  multiCatch[i,:,:] = catchments
+
+ncFile = "/tigress/nwanders/Scripts/PCR-GLOBWB/input30min/global/hydrobasins.nc"
+f = nc.Dataset(ncFile)
+catchments = f.variables["basin"][:,:]
 f.close()
 multiCatch = np.zeros((30,360,720))
 for i in range(30):
@@ -80,7 +100,7 @@ if model == "FLOR":
     dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/FLOR/PCRGLOBWB/"+ref+"/"
     ensNr = 12
 
-if model == "EPS":
+if model == "ESP":
     dirLoc = "/tigress/nwanders/Scripts/hydroSeasonal/ESP/PCRGLOBWB/"+ref+"/"
     ensNr = 10
 
@@ -125,8 +145,8 @@ if ref == "CFS":
         ncRef = "/tigress/nwanders/Scripts/hydroSeasonal/CFS/netcdf/satDegUpp_seasoAvg_output.nc"
 
 
-ncOutputFile1 = "/tigress/nwanders/Scripts/hydroSeasonal/resultsNetCDF/PCRGLOBWB_"+model+"_"+ref+"_waterScarcity_lag_"+str(lag)+"Catchment.nc4"
-ncOutputFile2 = "/tigress/nwanders/Scripts/hydroSeasonal/resultsNetCDF/PCRGLOBWB_"+model+"_"+ref+"_waterDemand_lag_"+str(lag)+"Catchment.nc4"
+ncOutputFile1 = "/tigress/nwanders/Scripts/hydroSeasonal/resultsNetCDF/PCRGLOBWB_"+model+"_"+ref+"_waterDemand_lag_"+str(lag)+"Catchment.nc4"
+ncOutputFile2 = "/tigress/nwanders/Scripts/hydroSeasonal/resultsNetCDF/PCRGLOBWB_"+model+"_"+ref+"_waterScarcity_lag_"+str(lag)+"Catchment.nc4"
 
 startDays = np.tile(["01","16"],24)
 endDays = np.tile(["15","31","15","28","15","31","15","30","15","31","15","30","15","31","15","31","15","30","15","31","15","30","15","31"],2)
@@ -134,7 +154,7 @@ inputMonth = np.tile(np.repeat(["01","02","03","04","05","06","07","08","09","10
 inputYear = np.repeat(["2010","2011"],24)
 varNames = ["correlation","signif", "bias","RMSE"]
 varUnits = ["-","-","m3/s","m3/s"]
-MV = np.nan
+MV = 1.e+20
 createNetCDF(ncOutputFile1, varNames, varUnits, np.arange(89.75,-90,-0.5), np.arange(-179.75,180,0.5), loop=True)
 createNetCDF(ncOutputFile2, varNames, varUnits, np.arange(89.75,-90,-0.5), np.arange(-179.75,180,0.5), loop=True)
 posCount = 0
@@ -143,8 +163,7 @@ for event in range(0,end,step):
     dateInput = "1981-"+inputMonth[event]+"-"+startDays[event]
     endDay = inputYear[event+month-1]+"-"+inputMonth[event+month-1]+"-"+endDays[event+month-1]
     print dateInput
-    print endDay
-    
+    print endDay    
     if varName != "evap" and varName != "scarcity":
       NMME = returnSeasonalForecast(dateInput, endDay, model, varName, lag, dirLoc = dirLoc, ensNr = ensNr)
     elif varName == "evap":
@@ -172,7 +191,6 @@ for event in range(0,end,step):
       totalDemand = ensembleMean(potEvap-evap, ensDimension = 1)*irriArea*multiEfficiency + (domestic + industry)*multiarea
       del(potEvap)
       del(evap)
-      
     print lagToDateStr(dateInput, lag, model)
     print lagToDateStr(endDay, lag, model)
     if varName != "evap" and varName != "scarcity":
@@ -183,78 +201,77 @@ for event in range(0,end,step):
     else:
       potEvapPGF = readForcing(ncRef1, varName_1, dateInput, endDay=endDay, lag=lag, model="PGF")
       evapPGF = readForcing(ncRef2, varName_2, dateInput, endDay=endDay, lag=lag, model="PGF")
-      dischargePGF = readForcing(ncRef3, varName_3, dateInput, endDay=endDay, lag=lag, model="PGF")/multiarea*86400.
-      totalDemandPGF = (potEvapPGF-evapPGF)*multiEfficiency + domestic + industry
+      dischargePGF = readForcing(ncRef3, varName_3, dateInput, endDay=endDay, lag=lag, model="PGF")*86400.
+      totalDemandPGF = (potEvapPGF-evapPGF)*irriArea*multiEfficiency + (domestic + industry)*multiarea
       del(potEvapPGF)
       del(evapPGF)
-    
     for space in range(1):
         print space
         spaceNMME = totalDemand
         spacePGF = totalDemandPGF
-        
         corMap = np.zeros((360,720))-np.nan
         signMap = np.zeros((360,720))-np.nan
         biasMap = np.zeros((360,720))-np.nan
         RMSEmap = np.zeros((360,720))-np.nan
-
-        for c in range(1,(np.max(catchments)+1)):
+        corMapScar = np.zeros((360,720))-np.nan
+        signMapScar = np.zeros((360,720))-np.nan
+        biasMapScar = np.zeros((360,720))-np.nan
+        RMSEmapScar = np.zeros((360,720))-np.nan
+        annualCatchDemand = np.zeros((30,np.max(catchments)+1))
+        annualCatchDemandPGF = np.zeros((30,np.max(catchments)+1))
+        annualCatchScarDemand = np.zeros((30,np.max(catchments)+1))
+        annualCatchScarPGF = np.zeros((30,np.max(catchments)+1))
+        for year in range(30):
+	  df = pd.DataFrame({ 'catchment' : catchFlat.reshape((360*720)), 'demand' : totalDemand[year,:,:].reshape(360*720), 'demandPGF' : totalDemandPGF[year,:,:].reshape(360*720)})
+          result = df.groupby(['catchment']).sum()
+          locs = result.index.values[1:(np.max(catchments)+1)]
+          annualCatchDemand[year,locs] = np.array(result["demand"])[1:np.max(catchments)+2]
+          annualCatchDemandPGF[year,locs] = np.array(result["demandPGF"])[1:np.max(catchments)+2]
+	  df = pd.DataFrame({ 'catchment' : catchFlat.reshape((360*720)), 'discharge' : discharge[year,:,:].reshape(360*720), 'dischargePGF' : dischargePGF[year,:,:].reshape(360*720)})
+          result = df.groupby(['catchment']).max()
+          annualCatchScarDemand[year,locs] = np.array(result["discharge"])[1:np.max(catchments)+2]
+          annualCatchScarPGF[year,locs] = np.array(result["dischargePGF"])[1:np.max(catchments)+2]
+        for c in locs:
           print c
-          if len(np.where(catchments == c)[0]) > 10.:
-            maskNMME = np.ma.masked_where(multiCatch != c, spaceNMME).mean(axis=1).mean(axis=1)
-            maskPGF = np.ma.masked_where(multiCatch != c, spacePGF).mean(axis=1).mean(axis=1)
-            try:
-              out = spearmanr(maskPGF, maskNMME)
-            except:
-              out = np.ones(2)
-              out[0] = np.nan
-            try:
-              rmseOut = RMSE(maskPGF, maskNMME)
-            except:
-              rmseOut = np.nan
-            corMap[catchments==c] = out[0]
-            signMap[catchments==c] = out[1]
-            biasMap[catchments==c] = np.mean(maskPGF -  maskNMME)
-            RMSEmap[catchments==c] = rmseOut
-        
+          try:
+            out = spearmanr(annualCatchDemandPGF[:,c], annualCatchDemand[:,c])
+            outScar = spearmanr(annualCatchDemandPGF[:,c]/annualCatchScarPGF[:,c], annualCatchDemand[:,c]/annualCatchScarDemand[:,c])
+          except:
+            out = np.ones(2)
+            out[0] = np.nan
+            outScar = np.ones(2)
+            outScar[0] = np.nan
+          try:
+            rmseOut = RMSE(annualCatchDemandPGF[:,c], annualCatchDemand[:,c])
+            rmseOutScar = RMSE(annualCatchDemandPGF[:,c]/annualCatchScarPGF[:,c], annualCatchDemand[:,c]/annualCatchScarDemand[:,c])
+          except:
+            rmseOut = np.nan
+            rmseOutScar = np.nan
+          resultsMask = catchments==c
+          corMap[resultsMask] = out[0]
+          signMap[resultsMask] = out[1]
+          biasMap[resultsMask] = np.mean(annualCatchDemandPGF[:,c] - annualCatchDemand[:,c])
+          RMSEmap[resultsMask] = rmseOut        
+          corMapScar[resultsMask] = outScar[0]
+          signMapScar[resultsMask] = outScar[1]
+          biasMapScar[resultsMask] = np.mean(annualCatchDemandPGF[:,c]/annualCatchScarPGF[:,c] - annualCatchDemand[:,c]/annualCatchScarDemand[:,c])
+          RMSEmapScar[resultsMask] = rmseOutScar        
+        resultsMask = catchments==0
+        corMap[resultsMask] = MV
+        signMap[resultsMask] = MV
+        biasMap[resultsMask] = MV
+        RMSEmap[resultsMask] = MV
+        corMapScar[resultsMask] = MV
+        signMapScar[resultsMask] = MV
+        biasMapScar[resultsMask] = MV
+        RMSEmapScar[resultsMask] = MV
         data2NetCDF(ncOutputFile1, "correlation", corMap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile1, "signif", signMap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile1, "bias", biasMap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile1, "RMSE", RMSEmap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
-
-    for space in range(1):
-        print space
-        spaceNMME = totalDemand
-        spacePGF = totalDemandPGF
-
-        corMap = np.zeros((360,720))-np.nan
-        signMap = np.zeros((360,720))-np.nan
-        biasMap = np.zeros((360,720))-np.nan
-        RMSEmap = np.zeros((360,720))-np.nan
-
-        for c in range(1,(np.max(catchments)+1)):
-          print c
-          if len(np.where(catchments == c)[0]) > 10.:
-            maskNMME = np.ma.masked_where(multiCatch != c, spaceNMME).mean(axis=1).mean(axis=1)
-            maskPGF = np.ma.masked_where(multiCatch != c, spacePGF).mean(axis=1).mean(axis=1)
-            try:
-              out = spearmanr(maskPGF, maskNMME)
-            except:
-              out = np.ones(2)
-              out[0] = np.nan
-            try:
-              rmseOut = RMSE(maskPGF, maskNMME)
-            except:
-              rmseOut = np.nan
-            corMap[catchments==c] = out[0]
-            signMap[catchments==c] = out[1]
-            biasMap[catchments==c] = np.mean(maskPGF -  maskNMME)
-            RMSEmap[catchments==c] = rmseOut
-
-        data2NetCDF(ncOutputFile2, "correlation", corMap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
-        data2NetCDF(ncOutputFile2, "signif", signMap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
-        data2NetCDF(ncOutputFile2, "bias", biasMap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
-        data2NetCDF(ncOutputFile2, "RMSE", RMSEmap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
+        data2NetCDF(ncOutputFile2, "correlation", corMapScar, lagToDateTime(dateInput, 0, model), posCnt = posCount)
+        data2NetCDF(ncOutputFile2, "signif", signMapScar, lagToDateTime(dateInput, 0, model), posCnt = posCount)
+        data2NetCDF(ncOutputFile2, "bias", biasMapScar, lagToDateTime(dateInput, 0, model), posCnt = posCount)
+        data2NetCDF(ncOutputFile2, "RMSE", RMSEmapScar, lagToDateTime(dateInput, 0, model), posCnt = posCount)        
     posCount += 1
     filecache = None
-
