@@ -5,23 +5,14 @@ import sys
 import pandas as pd
 
 
-#lag = int(sys.argv[5])
-#step = int(sys.argv[2])
-#end = int(sys.argv[3])
-#month = int(sys.argv[4])
-#tempScale = int(sys.argv[1])
-#model = sys.argv[6]
-#varName = sys.argv[8]
-#ref = sys.argv[7]
-
-lag = int(0)
-step = int(1)
-end = int(1)
-month = int(1)
-tempScale = int(0)
-model = "ESP"
-varName = "scarcity"
-ref = "PGF"
+lag = int(sys.argv[5])
+step = int(sys.argv[2])
+end = int(sys.argv[3])
+month = int(sys.argv[4])
+tempScale = int(sys.argv[1])
+model = sys.argv[6]
+varName = sys.argv[8]
+ref = sys.argv[7]
 
 ncFile = "/tigress/nwanders/Scripts/PCR-GLOBWB/input30min/global/majorCatchments.nc"
 f = nc.Dataset(ncFile)
