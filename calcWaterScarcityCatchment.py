@@ -18,7 +18,6 @@ ncFile = "/tigress/nwanders/Scripts/PCR-GLOBWB/input30min/global/majorCatchments
 f = nc.Dataset(ncFile)
 catchments = f.variables["Band1"][::-1,:]
 f.close()
-catchFlat = np.array(catchments).reshape(360*720)
 multiCatch = np.zeros((30,360,720))
 for i in range(30):
   multiCatch[i,:,:] = catchments
@@ -26,6 +25,7 @@ for i in range(30):
 ncFile = "/tigress/nwanders/Scripts/PCR-GLOBWB/input30min/global/hydrobasins.nc"
 f = nc.Dataset(ncFile)
 catchments = f.variables["basin"][:,:]
+catchFlat = np.array(catchments).reshape(360*720)
 f.close()
 multiCatch = np.zeros((30,360,720))
 for i in range(30):
