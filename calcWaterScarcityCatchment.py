@@ -143,8 +143,8 @@ startDays = np.tile(["01","16"],24)
 endDays = np.tile(["15","31","15","28","15","31","15","30","15","31","15","30","15","31","15","31","15","30","15","31","15","30","15","31"],2)
 inputMonth = np.tile(np.repeat(["01","02","03","04","05","06","07","08","09","10","11","12"],2),2)
 inputYear = np.repeat(["2010","2011"],24)
-varNames = ["correlation","signif", "bias","RMSE"]
-varUnits = ["-","-","m3/s","m3/s"]
+varNames = ["correlation","correlationStatic","signif", "bias","RMSE"]
+varUnits = ["-","-","-","m3/s","m3/s"]
 MV = 1.e+20
 createNetCDF(ncOutputFile1, varNames, varUnits, np.arange(89.75,-90,-0.5), np.arange(-179.75,180,0.5), loop=True)
 createNetCDF(ncOutputFile2, varNames, varUnits, np.arange(89.75,-90,-0.5), np.arange(-179.75,180,0.5), loop=True)
@@ -179,7 +179,7 @@ for event in range(0,end,step):
       potEvap = returnSeasonalForecast(dateInput, endDay, model, varName_1, lag, dirLoc = dirLoc, ensNr = ensNr) 
       evap = returnSeasonalForecast(dateInput, endDay, model, varName_2, lag, dirLoc = dirLoc, ensNr = ensNr)
       discharge = ensembleMean(returnSeasonalForecast(dateInput, endDay, model, varName_3, lag, dirLoc = dirLoc, ensNr = ensNr), ensDimension = 1)*86400.
-      totalDemand = ensembleMean(potEvap-evap, ensDimension = 1)*irriArea*multiEfficiency + (domestic + industry)*multiarea
+      totalDemand = ensembleMean(potEvap-evap, ensDimension = 1)*irriArea/multiEfficiency# + (domestic + industry)*multiarea
       del(potEvap)
       del(evap)
     print lagToDateStr(dateInput, lag, model)
@@ -193,7 +193,8 @@ for event in range(0,end,step):
       potEvapPGF = readForcing(ncRef1, varName_1, dateInput, endDay=endDay, lag=lag, model="PGF")
       evapPGF = readForcing(ncRef2, varName_2, dateInput, endDay=endDay, lag=lag, model="PGF")
       dischargePGF = readForcing(ncRef3, varName_3, dateInput, endDay=endDay, lag=lag, model="PGF")*86400.
-      totalDemandPGF = (potEvapPGF-evapPGF)*irriArea*multiEfficiency + (domestic + industry)*multiarea
+      totalDemandPGF = (potEvapPGF-evapPGF)*irriArea/multiEfficiency# + (domestic + industry)*multiarea
+      totalStatic = (domestic + industry)*multiarea
       del(potEvapPGF)
       del(evapPGF)
     for space in range(1):
@@ -201,23 +202,27 @@ for event in range(0,end,step):
         spaceNMME = totalDemand
         spacePGF = totalDemandPGF
         corMap = np.zeros((360,720))-np.nan
+        corMapStatic = np.zeros((360,720))-np.nan
         signMap = np.zeros((360,720))-np.nan
         biasMap = np.zeros((360,720))-np.nan
         RMSEmap = np.zeros((360,720))-np.nan
         corMapScar = np.zeros((360,720))-np.nan
+        corMapScarStatic = np.zeros((360,720))-np.nan
         signMapScar = np.zeros((360,720))-np.nan
         biasMapScar = np.zeros((360,720))-np.nan
         RMSEmapScar = np.zeros((360,720))-np.nan
         annualCatchDemand = np.zeros((30,np.max(catchments)+1))
         annualCatchDemandPGF = np.zeros((30,np.max(catchments)+1))
+        annualCatchDemandStatic = np.zeros((30,np.max(catchments)+1))
         annualCatchScarDemand = np.zeros((30,np.max(catchments)+1))
         annualCatchScarPGF = np.zeros((30,np.max(catchments)+1))
         for year in range(30):
-	  df = pd.DataFrame({ 'catchment' : catchFlat.reshape((360*720)), 'demand' : totalDemand[year,:,:].reshape(360*720), 'demandPGF' : totalDemandPGF[year,:,:].reshape(360*720)})
+	  df = pd.DataFrame({ 'catchment' : catchFlat.reshape((360*720)), 'demand' : totalDemand[year,:,:].reshape(360*720), 'demandPGF' : totalDemandPGF[year,:,:].reshape(360*720), 'demandStatic' : totalStatic[year,:,:].reshape(360*720)})
           result = df.groupby(['catchment']).sum()
           locs = result.index.values[1:(np.max(catchments)+1)]
           annualCatchDemand[year,locs] = np.array(result["demand"])[1:np.max(catchments)+2]
           annualCatchDemandPGF[year,locs] = np.array(result["demandPGF"])[1:np.max(catchments)+2]
+          annualCatchDemandStatic[year,locs] = np.array(result["demandStatic"])[1:np.max(catchments)+2]
 	  df = pd.DataFrame({ 'catchment' : catchFlat.reshape((360*720)), 'discharge' : discharge[year,:,:].reshape(360*720), 'dischargePGF' : dischargePGF[year,:,:].reshape(360*720)})
           result = df.groupby(['catchment']).max()
           annualCatchScarDemand[year,locs] = np.array(result["discharge"])[1:np.max(catchments)+2]
@@ -226,12 +231,18 @@ for event in range(0,end,step):
           print c
           try:
             out = spearmanr(annualCatchDemandPGF[:,c], annualCatchDemand[:,c])
+            outStatic = spearmanr((annualCatchDemandPGF[:,c]+annualCatchDemandStatic[:,c]), (annualCatchDemand[:,c]+annualCatchDemandStatic[:,c]))
             outScar = spearmanr(annualCatchDemandPGF[:,c]/annualCatchScarPGF[:,c], annualCatchDemand[:,c]/annualCatchScarDemand[:,c])
+            outScarStatic = spearmanr((annualCatchDemandPGF[:,c]+annualCatchDemandStatic[:,c])/annualCatchScarPGF[:,c], (annualCatchDemand[:,c]+annualCatchDemandStatic[:,c])/annualCatchScarDemand[:,c])
           except:
             out = np.ones(2)
             out[0] = np.nan
+            outStatic = np.ones(2)
+            outStatic[0] = np.nan
             outScar = np.ones(2)
             outScar[0] = np.nan
+            outScarStatic = np.ones(2)
+            outScarStatic[0] = np.nan
           try:
             rmseOut = RMSE(annualCatchDemandPGF[:,c], annualCatchDemand[:,c])
             rmseOutScar = RMSE(annualCatchDemandPGF[:,c]/annualCatchScarPGF[:,c], annualCatchDemand[:,c]/annualCatchScarDemand[:,c])
@@ -247,6 +258,8 @@ for event in range(0,end,step):
           signMapScar[resultsMask] = outScar[1]
           biasMapScar[resultsMask] = np.mean(annualCatchDemandPGF[:,c]/annualCatchScarPGF[:,c] - annualCatchDemand[:,c]/annualCatchScarDemand[:,c])
           RMSEmapScar[resultsMask] = rmseOutScar        
+          corMapStatic[resultsMask] = outStatic[0]
+          corMapScarStatic[resultsMask] = outScarStatic[0]
         resultsMask = catchments==0
         corMap[resultsMask] = MV
         signMap[resultsMask] = MV
@@ -257,10 +270,12 @@ for event in range(0,end,step):
         biasMapScar[resultsMask] = MV
         RMSEmapScar[resultsMask] = MV
         data2NetCDF(ncOutputFile1, "correlation", corMap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
+        data2NetCDF(ncOutputFile1, "correlationStatic", corMapStatic, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile1, "signif", signMap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile1, "bias", biasMap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile1, "RMSE", RMSEmap, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile2, "correlation", corMapScar, lagToDateTime(dateInput, 0, model), posCnt = posCount)
+        data2NetCDF(ncOutputFile2, "correlationStatic", corMapScarStatic, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile2, "signif", signMapScar, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile2, "bias", biasMapScar, lagToDateTime(dateInput, 0, model), posCnt = posCount)
         data2NetCDF(ncOutputFile2, "RMSE", RMSEmapScar, lagToDateTime(dateInput, 0, model), posCnt = posCount)        
