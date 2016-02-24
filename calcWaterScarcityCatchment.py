@@ -3,7 +3,7 @@ from readData import *
 from scipy.stats.stats import spearmanr
 import sys
 import pandas as pd
-
+from scipy import signal
 
 lag = int(sys.argv[5])
 step = int(sys.argv[2])
@@ -230,10 +230,10 @@ for event in range(0,end,step):
         for c in locs:
           print c
           try:
-            out = spearmanr(annualCatchDemandPGF[:,c], annualCatchDemand[:,c])
-            outStatic = spearmanr((annualCatchDemandPGF[:,c]+annualCatchDemandStatic[:,c]), (annualCatchDemand[:,c]+annualCatchDemandStatic[:,c]))
-            outScar = spearmanr(annualCatchDemandPGF[:,c]/annualCatchScarPGF[:,c], annualCatchDemand[:,c]/annualCatchScarDemand[:,c])
-            outScarStatic = spearmanr((annualCatchDemandPGF[:,c]+annualCatchDemandStatic[:,c])/annualCatchScarPGF[:,c], (annualCatchDemand[:,c]+annualCatchDemandStatic[:,c])/annualCatchScarDemand[:,c])
+            out = spearmanr(signal.detrend(annualCatchDemandPGF[:,c]), signal.detrend(annualCatchDemand[:,c]))
+            outStatic = spearmanr(signal.detrend(annualCatchDemandPGF[:,c]+annualCatchDemandStatic[:,c]), signal.detrend(annualCatchDemand[:,c]+annualCatchDemandStatic[:,c]))
+            outScar = spearmanr(signal.detrend(annualCatchDemandPGF[:,c]/annualCatchScarPGF[:,c]), signal.detrend(annualCatchDemand[:,c]/annualCatchScarDemand[:,c]))
+            outScarStatic = spearmanr(signal.detrend((annualCatchDemandPGF[:,c]+annualCatchDemandStatic[:,c])/annualCatchScarPGF[:,c]), signal.detrend((annualCatchDemand[:,c]+annualCatchDemandStatic[:,c])/annualCatchScarDemand[:,c]))
           except:
             out = np.ones(2)
             out[0] = np.nan
@@ -244,28 +244,30 @@ for event in range(0,end,step):
             outScarStatic = np.ones(2)
             outScarStatic[0] = np.nan
           try:
-            rmseOut = RMSE(annualCatchDemandPGF[:,c], annualCatchDemand[:,c])
-            rmseOutScar = RMSE(annualCatchDemandPGF[:,c]/annualCatchScarPGF[:,c], annualCatchDemand[:,c]/annualCatchScarDemand[:,c])
+            rmseOut = RMSE(signal.detrend(annualCatchDemandPGF[:,c]), signal.detrend(annualCatchDemand[:,c]))
+            rmseOutScar = RMSE(signal.detrend(annualCatchDemandPGF[:,c]/annualCatchScarPGF[:,c]), signal.detrend(annualCatchDemand[:,c]/annualCatchScarDemand[:,c]))
           except:
             rmseOut = np.nan
             rmseOutScar = np.nan
           resultsMask = catchments==c
           corMap[resultsMask] = out[0]
           signMap[resultsMask] = out[1]
-          biasMap[resultsMask] = np.mean(annualCatchDemandPGF[:,c] - annualCatchDemand[:,c])
+          biasMap[resultsMask] = np.mean(signal.detrend(annualCatchDemandPGF[:,c]) - signal.detrend(annualCatchDemand[:,c]))
           RMSEmap[resultsMask] = rmseOut        
           corMapScar[resultsMask] = outScar[0]
           signMapScar[resultsMask] = outScar[1]
-          biasMapScar[resultsMask] = np.mean(annualCatchDemandPGF[:,c]/annualCatchScarPGF[:,c] - annualCatchDemand[:,c]/annualCatchScarDemand[:,c])
+          biasMapScar[resultsMask] = np.mean(signal.detrend(annualCatchDemandPGF[:,c]/annualCatchScarPGF[:,c]) - signal.detrend(annualCatchDemand[:,c]/annualCatchScarDemand[:,c]))
           RMSEmapScar[resultsMask] = rmseOutScar        
           corMapStatic[resultsMask] = outStatic[0]
           corMapScarStatic[resultsMask] = outScarStatic[0]
         resultsMask = catchments==0
         corMap[resultsMask] = MV
+        corMapStatic[resultsMask] = MV
         signMap[resultsMask] = MV
         biasMap[resultsMask] = MV
         RMSEmap[resultsMask] = MV
         corMapScar[resultsMask] = MV
+        corMapScarStatic[resultsMask] = MV
         signMapScar[resultsMask] = MV
         biasMapScar[resultsMask] = MV
         RMSEmapScar[resultsMask] = MV
