@@ -256,7 +256,10 @@ for event in range(0,end,step):
           RMSEmap[resultsMask] = rmseOut        
           corMapScar[resultsMask] = outScar[0]
           signMapScar[resultsMask] = outScar[1]
-          biasMapScar[resultsMask] = np.mean(signal.detrend(annualCatchDemandPGF[:,c]/annualCatchScarPGF[:,c]) - signal.detrend(annualCatchDemand[:,c]/annualCatchScarDemand[:,c]))
+          try:
+            biasMapScar[resultsMask] = np.mean(signal.detrend(annualCatchDemandPGF[:,c]/annualCatchScarPGF[:,c]) - signal.detrend(annualCatchDemand[:,c]/annualCatchScarDemand[:,c]))
+          except:
+            pass
           RMSEmapScar[resultsMask] = rmseOutScar        
           corMapStatic[resultsMask] = outStatic[0]
           corMapScarStatic[resultsMask] = outScarStatic[0]
