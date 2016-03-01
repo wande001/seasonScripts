@@ -14,6 +14,16 @@ model = sys.argv[6]
 varName = sys.argv[8]
 ref = sys.argv[7]
 
+lag = 11
+step = 1
+end = 1
+month = 1
+tempScale = 0
+model = "FLOR"
+varName = "scarcity"
+ref = "PGF"
+
+
 ncFile = "/tigress/nwanders/Scripts/PCR-GLOBWB/input30min/global/majorCatchments.nc"
 f = nc.Dataset(ncFile)
 catchments = f.variables["Band1"][::-1,:]
@@ -174,7 +184,7 @@ for event in range(0,end,step):
       ncFile = "/tigress/nwanders/Scripts/PCR-GLOBWB/input30min/landSurface/waterDemand/irrigated_areas/irrigationArea30ArcMin.nc"
       f = nc.Dataset(ncFile)
       for i in range(21,51):
-        irriArea[i-21,:,:] = f.variables["irrigationArea"][i,:,:]
+        irriArea[i-21,:,:] = f.variables["irrigationArea"][i,:,:] * 100. * 100.
       f.close()
       potEvap = returnSeasonalForecast(dateInput, endDay, model, varName_1, lag, dirLoc = dirLoc, ensNr = ensNr) 
       evap = returnSeasonalForecast(dateInput, endDay, model, varName_2, lag, dirLoc = dirLoc, ensNr = ensNr)
