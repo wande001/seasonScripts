@@ -2,8 +2,8 @@ from readData import *
 import sys
 import pandas as pd
 
-year = 1981 #int(sys.argv[1])
-model = "CanCM3" #sys.argv[2]
+year = int(sys.argv[1])
+model = sys.argv[2]
 ref = "PGF"
 ncFile = "/tigress/nwanders/Scripts/PCR-GLOBWB/input30min/global/hydrobasins.nc"
 f = nc.Dataset(ncFile)
